@@ -1,8 +1,14 @@
 import sqlite3 from 'sqlite3';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
 
-const dbPath = process.env.DB_PATH || './data/db.sqlite';
+const dataDir = path.join(process.cwd(), 'data');
+
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
+const dbPath = process.env.DB_PATH || path.join(dataDir, 'db.sqlite');
 
 export class Database {
   private db: sqlite3.Database;
@@ -16,7 +22,8 @@ export class Database {
     return new Promise((resolve, reject) => {
       this.db.serialize(() => {
         let completed = 0;
-      const total = 10;
+        const total = 9;
+
         const checkComplete = (err?: Error) => {
           if (err) {
             reject(err);
@@ -35,7 +42,7 @@ export class Database {
             name TEXT NOT NULL UNIQUE,
             created_at TEXT NOT NULL
           )`,
-          (err) => checkComplete(err as Error | undefined)
+          (err) => checkComplete(err || undefined)
         );
 
         // Drivers table
@@ -50,7 +57,7 @@ export class Database {
             updated_at TEXT NOT NULL,
             FOREIGN KEY (company_id) REFERENCES companies(id)
           )`,
-          (err) => checkComplete(err as Error | undefined)
+          (err) => checkComplete(err || undefined)
         );
 
         // Uploads table
@@ -66,7 +73,7 @@ export class Database {
             updated_at TEXT NOT NULL,
             FOREIGN KEY (driver_id) REFERENCES drivers(id)
           )`,
-          (err) => checkComplete(err as Error | undefined)
+          (err) => checkComplete(err || undefined)
         );
 
         // Approved images table
@@ -79,42 +86,50 @@ export class Database {
             created_at TEXT NOT NULL,
             FOREIGN KEY (upload_id) REFERENCES uploads(id)
           )`,
-          (err) => checkComplete(err as Error | undefined)
+          (err) => checkComplete(err || undefined)
         );
 
-        // Create indexes
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_drivers_telegram_user_id ON drivers(telegram_user_id)', (err) => {
-          checkComplete(err as Error | undefined);
-        });
+        // Indexes
+        this.db.run(
+          `CREATE INDEX IF NOT EXISTS idx_drivers_telegram_user_id 
+           ON drivers(telegram_user_id)`,
+          (err) => checkComplete(err || undefined)
+        );
 
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_uploads_driver_id ON uploads(driver_id)', (err) => {
-          checkComplete(err as Error | undefined);
-        });
+        this.db.run(
+          `CREATE INDEX IF NOT EXISTS idx_uploads_driver_id 
+           ON uploads(driver_id)`,
+          (err) => checkComplete(err || undefined)
+        );
 
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_uploads_status ON uploads(status)', (err) => {
-          checkComplete(err as Error | undefined);
-        });
+        this.db.run(
+          `CREATE INDEX IF NOT EXISTS idx_uploads_status 
+           ON uploads(status)`,
+          (err) => checkComplete(err || undefined)
+        );
 
-        this.db.run('CREATE INDEX IF NOT EXISTS idx_drivers_company_id ON drivers(company_id)', (err) => {
-          checkComplete(err as Error | undefined);
-        });
+        this.db.run(
+          `CREATE INDEX IF NOT EXISTS idx_drivers_company_id 
+           ON drivers(company_id)`,
+          (err) => checkComplete(err || undefined)
+        );
 
-        // Add file_ids column to uploads if missing from older DB schema
-        this.db.run('ALTER TABLE uploads ADD COLUMN file_ids TEXT', (err) => {
-          if (err && err.message.includes('duplicate column name')) {
-            checkComplete();
+        // Safe migration: uploads.file_ids
+        this.db.run(`ALTER TABLE uploads ADD COLUMN file_ids TEXT`, (err) => {
+          if (err && !err.message.includes('duplicate')) {
+            reject(err);
             return;
           }
-          checkComplete(err as Error | undefined);
+          checkComplete();
         });
 
-        // Add file_id column if missing from older approved_images schema
-        this.db.run('ALTER TABLE approved_images ADD COLUMN file_id TEXT', (err) => {
-          if (err && err.message.includes('duplicate column name')) {
-            checkComplete();
+        // Safe migration: approved_images.file_id
+        this.db.run(`ALTER TABLE approved_images ADD COLUMN file_id TEXT`, (err) => {
+          if (err && !err.message.includes('duplicate')) {
+            reject(err);
             return;
           }
-          checkComplete(err as Error | undefined);
+          checkComplete();
         });
       });
     });
