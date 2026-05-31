@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Driver Approval</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      font-size: 24px;
+    }
+
+    .header button {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .header button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: transparent;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .uploads-list {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .upload-item {
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .upload-item:hover {
+      background: #f9fafb;
+    }
+
+    .upload-info h3 {
+      margin-bottom: 8px;
+      color: #667eea;
+    }
+
+    .upload-meta {
+      font-size: 13px;
+      color: #999;
+    }
+
+    .upload-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .btn-approve {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-approve:hover {
+      background: #059669;
+    }
+
+    .btn-reject {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-reject:hover {
+      background: #dc2626;
+    }
+
+    .btn-view {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-view:hover {
+      background: #5568d3;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      width: 90%;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+      font-size: 20px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #999;
+    }
+
+    .images-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .image-thumb {
+      width: 100%;
+      height: 150px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      font-size: 12px;
+      text-align: center;
+      padding: 10px;
+      transition: all 0.2s;
+    }
+
+    .image-thumb:hover {
+      border-color: #667eea;
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .image-thumb.selected {
+      border: 3px solid #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    .image-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 2px;
+    }
+
+    .company-form {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .companies-list {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .company-item {
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .company-item:hover {
+      background: #f9fafb;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-approved {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-rejected {
+      background: #fee2e2;
+      color: #7f1d1d;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 Admin Dashboard</h1>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('uploads')">📤 Pending Uploads</button>
+      <button class="tab-btn" onclick="switchTab('companies')">🏢 Companies</button>
+    </div>
+
+    <!-- Uploads Tab -->
+    <div id="uploads" class="tab-content active">
+      <div class="uploads-list" id="uploadsList">
+        <div class="loading">Loading uploads...</div>
+      </div>
+    </div>
+
+    <!-- Companies Tab -->
+    <div id="companies" class="tab-content">
+      <div class="company-form">
+        <h3>Create New Company</h3>
+        <form id="companyForm" onsubmit="createCompany(event)">
+          <div class="form-group">
+            <label for="companyName">Company Name</label>
+            <input type="text" id="companyName" required placeholder="Enter company name">
+          </div>
+          <button type="submit" class="btn btn-approve">Create Company</button>
+        </form>
+      </div>
+
+      <div class="companies-list" id="companiesList">
+        <div class="loading">Loading companies...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Upload Modal -->
+  <div id="uploadModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Upload Details</h2>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div id="uploadDetails"></div>
+      <div class="images-gallery" id="imagesGallery"></div>
+      <div class="upload-actions" style="justify-content: flex-end; margin-top: 20px;">
+        <button class="btn btn-reject" onclick="rejectUpload()">❌ Reject</button>
+        <button class="btn btn-approve" onclick="approveUpload()">✅ Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUploadId = null;
+    const selectedImageIndexes = new Set();
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tabName === 'uploads') loadUploads();
+      if (tabName === 'companies') loadCompanies();
+    }
+
+    async function loadUploads() {
+      try {
+        const response = await fetch('/api/uploads/pending');
+        if (!response.ok) throw new Error('Failed to load uploads');
+
+        const uploads = await response.json();
+        const list = document.getElementById('uploadsList');
+
+        if (uploads.length === 0) {
+          list.innerHTML = '<div class="empty-state">No pending uploads</div>';
+          return;
+        }
+
+        list.innerHTML = uploads.map(u => `
+          <div class="upload-item">
+            <div class="upload-info">
+              <h3>${u.driver_name}</h3>
+              <div class="upload-meta">
+                📍 ${u.group_name} | 🖼️ ${u.image_count} images | ⏳ ${new Date(u.created_at).toLocaleString()}
+              </div>
+            </div>
+            <div class="upload-actions">
+              <button class="btn btn-view" onclick="viewUpload('${u.id}')">View</button>
+              <button class="btn btn-approve" onclick="approveUploadDirect('${u.id}')">Approve</button>
+              <button class="btn btn-reject" onclick="rejectUploadDirect('${u.id}')">Reject</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading uploads:', error);
+        document.getElementById('uploadsList').innerHTML = '<div class="empty-state">Error loading uploads</div>';
+      }
+    }
+
+    async function viewUpload(uploadId) {
+      try {
+        const response = await fetch(`/api/uploads/${uploadId}`);
+        if (!response.ok) throw new Error('Failed to load upload');
+
+        const data = await response.json();
+        currentUploadId = uploadId;
+
+        document.getElementById('uploadDetails').innerHTML = `
+          <h3>${data.driver.name}</h3>
+          <div class="upload-meta">
+            <p><strong>Telegram ID:</strong> ${data.driver.telegram_user_id}</p>
+            <p><strong>Group:</strong> ${data.upload.group_name}</p>
+            <p><strong>Images:</strong> ${data.upload.image_count}</p>
+            <p><strong>Status:</strong> <span class="status-badge status-${data.upload.status}">${data.upload.status}</span></p>
+          </div>
+        `;
+
+        // Fetch image URLs
+        const imagesResponse = await fetch(`/api/uploads/${uploadId}/images`);
+        if (!imagesResponse.ok) throw new Error('Failed to load images');
+        
+        const imagesData = await imagesResponse.json();
+        const gallery = document.getElementById('imagesGallery');
+        
+        if (imagesData.images && imagesData.images.length > 0) {
+          selectedImageIndexes.clear();
+          gallery.innerHTML = imagesData.images.map((img, i) => {
+            return `
+              <div class="image-thumb" data-index="${i}" onclick="toggleImageSelection(${i})">
+                <img src="${img.url}" alt="Image ${i + 1}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2250%22 text-anchor=%22middle%22 dy=%22.3em%22%3E📸%3C/text%3E%3C/svg%3E'" />
+              </div>
+            `;
+          }).join('');
+        } else {
+          // Show placeholder if no images
+          gallery.innerHTML = Array(data.upload.image_count).fill(0).map((_, i) => 
+            `<div class="image-thumb">🖼️ Image ${i + 1}</div>`
+          ).join('');
+        }
+
+        document.getElementById('uploadModal').classList.add('active');
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    function toggleImageSelection(index) {
+      const gallery = document.getElementById('imagesGallery');
+      const thumb = gallery.querySelector(`.image-thumb[data-index="${index}"]`);
+      if (!thumb) return;
+
+      if (selectedImageIndexes.has(index)) {
+        selectedImageIndexes.delete(index);
+        thumb.classList.remove('selected');
+      } else {
+        selectedImageIndexes.add(index);
+        thumb.classList.add('selected');
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('uploadModal').classList.remove('active');
+      currentUploadId = null;
+      selectedImageIndexes.clear();
+    }
+
+    async function approveUpload() {
+      if (!currentUploadId) return;
+      try {
+        const response = await fetch(`/api/uploads/${currentUploadId}/approve`, {
+          method: 'POST'
+        });
+        if (!response.ok) throw new Error('Failed to approve');
+        closeModal();
+        loadUploads();
+        alert('✅ Upload approved!');
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    async function rejectUpload() {
+      if (!currentUploadId) return;
+      if (!confirm('Are you sure you want to reject this upload?')) return;
+      try {
+        const response = await fetch(`/api/uploads/${currentUploadId}/reject`, {
+          method: 'POST'
+        });
+        if (!response.ok) throw new Error('Failed to reject');
+        closeModal();
+        loadUploads();
+        alert('❌ Upload rejected!');
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    async function approveUploadDirect(uploadId) {
+      if (!confirm('Approve this upload?')) return;
+      try {
+        await fetch(`/api/uploads/${uploadId}/approve`, { method: 'POST' });
+        loadUploads();
+        alert('✅ Upload approved!');
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    async function rejectUploadDirect(uploadId) {
+      if (!confirm('Reject this upload?')) return;
+      try {
+        await fetch(`/api/uploads/${uploadId}/reject`, { method: 'POST' });
+        loadUploads();
+        alert('❌ Upload rejected!');
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    async function createCompany(event) {
+      event.preventDefault();
+      const name = document.getElementById('companyName').value;
+      try {
+        const response = await fetch('/api/companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        if (!response.ok) throw new Error('Failed to create company');
+        document.getElementById('companyForm').reset();
+        loadCompanies();
+        alert('✅ Company created!');
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    async function loadCompanies() {
+      try {
+        const response = await fetch('/api/companies');
+        if (!response.ok) throw new Error('Failed to load companies');
+
+        const companies = await response.json();
+        const list = document.getElementById('companiesList');
+
+        if (companies.length === 0) {
+          list.innerHTML = '<div class="empty-state">No companies yet</div>';
+          return;
+        }
+
+        list.innerHTML = companies.map(c => `
+          <div class="company-item">
+            <div>
+              <h3>${c.name}</h3>
+              <div class="upload-meta">Created: ${new Date(c.created_at).toLocaleDateString()}</div>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading companies:', error);
+        document.getElementById('companiesList').innerHTML = '<div class="empty-state">Error loading companies</div>';
+      }
+    }
+
+    async function logout() {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/admin';
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+
+    // Load initial data
+    loadUploads();
+  </script>
+</body>
+</html>
