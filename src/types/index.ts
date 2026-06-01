@@ -7,6 +7,7 @@ export interface Driver {
   name: string;
   status: DriverStatus;
   company_id: string | null;
+  truck_number?: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -220,6 +220,24 @@ ${process.env.ADMIN_URL || 'http://localhost:3000'}/admin?upload=${upload.id}
     }
   }
 
+  async sendMessage(chatId: number, message: string, options?: any): Promise<void> {
+    try {
+      await this.bot.telegram.sendMessage(chatId, message, options || {});
+    } catch (error) {
+      console.error('Error sending message:', error);
+      throw error;
+    }
+  }
+
+  async sendPhoto(chatId: number, fileId: string): Promise<void> {
+    try {
+      await this.bot.telegram.sendPhoto(chatId, fileId);
+    } catch (error) {
+      console.error('Error sending photo:', error);
+      throw error;
+    }
+  }
+
   start(): void {
     this.bot.launch();
     console.log('🤖 Telegram bot started');

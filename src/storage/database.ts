@@ -22,7 +22,7 @@ export class Database {
     return new Promise((resolve, reject) => {
       this.db.serialize(() => {
         let completed = 0;
-        const total = 9;
+        const total = 11;
 
         const checkComplete = (err?: Error) => {
           if (err) {
@@ -89,6 +89,15 @@ export class Database {
           (err) => checkComplete(err || undefined)
         );
 
+        // Settings table
+        this.db.run(
+          `CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+          )`,
+          (err) => checkComplete(err || undefined)
+        );
+
         // Indexes
         this.db.run(
           `CREATE INDEX IF NOT EXISTS idx_drivers_telegram_user_id 
@@ -125,6 +134,15 @@ export class Database {
 
         // Safe migration: approved_images.file_id
         this.db.run(`ALTER TABLE approved_images ADD COLUMN file_id TEXT`, (err) => {
+          if (err && !err.message.includes('duplicate')) {
+            reject(err);
+            return;
+          }
+          checkComplete();
+        });
+
+        // Safe migration: drivers.truck_number
+        this.db.run(`ALTER TABLE drivers ADD COLUMN truck_number TEXT`, (err) => {
           if (err && !err.message.includes('duplicate')) {
             reject(err);
             return;

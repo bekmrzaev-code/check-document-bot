@@ -70,4 +70,57 @@ router.post('/:id/assign', adminAuth, async (req: Request, res: Response) => {
   }
 });
 
+// Update driver (admin only)
+router.put('/:id', adminAuth, async (req: Request, res: Response) => {
+  try {
+    const { name, truck_number } = req.body;
+    const driver = await driverService.getById(req.params.id);
+
+    if (!driver) {
+      res.status(404).json({ error: 'Driver not found' });
+      return;
+    }
+
+    if (name) {
+      const now = new Date().toISOString();
+      await (global as any).db?.run?.(
+        'UPDATE drivers SET name = ?, updated_at = ? WHERE id = ?',
+        [name, now, req.params.id]
+      );
+    }
+
+    if (truck_number) {
+      await driverService.updateTruckNumber(req.params.id, truck_number);
+    }
+
+    const updated = await driverService.getById(req.params.id);
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating driver:', error);
+    res.status(500).json({ error: 'Failed to update driver' });
+  }
+});
+
+// Delete driver (admin only)
+router.delete('/:id', adminAuth, async (req: Request, res: Response) => {
+  try {
+    const driver = await driverService.getById(req.params.id);
+    if (!driver) {
+      res.status(404).json({ error: 'Driver not found' });
+      return;
+    }
+
+    // Delete associated images and uploads
+    await (global as any).db?.run?.(
+      'DELETE FROM drivers WHERE id = ?',
+      [req.params.id]
+    );
+
+    res.json({ success: true, message: 'Driver deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting driver:', error);
+    res.status(500).json({ error: 'Failed to delete driver' });
+  }
+});
+
 export default router;

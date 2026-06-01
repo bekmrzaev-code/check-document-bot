@@ -33,6 +33,22 @@ export class CompanyService {
   async getByName(name: string): Promise<Company | undefined> {
     return db.get<Company>('SELECT * FROM companies WHERE name = ?', [name]);
   }
+
+  async updateName(id: string, name: string): Promise<void> {
+    const now = new Date().toISOString();
+    await db.run(
+      'UPDATE companies SET name = ? WHERE id = ?',
+      [name, id]
+    );
+  }
+
+  async delete(id: string): Promise<void> {
+    await db.run('DELETE FROM companies WHERE id = ?', [id]);
+  }
+
+  async deleteAll(): Promise<void> {
+    await db.run('DELETE FROM companies', []);
+  }
 }
 
 export const companyService = new CompanyService();

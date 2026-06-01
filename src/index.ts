@@ -11,6 +11,7 @@ import companiesRouter from './routes/companies';
 import driversRouter from './routes/drivers';
 import authRouter from './routes/auth';
 import imagesRouter from './routes/images';
+import settingsRouter from './routes/settings';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +31,7 @@ app.use('/api/companies', companiesRouter);
 app.use('/api/drivers', driversRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/images', imagesRouter);
+app.use('/api/settings', settingsRouter);
 
 // Public routes
 app.get('/', (req: Request, res: Response) => {

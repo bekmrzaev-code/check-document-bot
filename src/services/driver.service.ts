@@ -54,6 +54,12 @@ export class DriverService {
     );
   }
 
+  async getAll(): Promise<Driver[]> {
+    return db.all<Driver>(
+      'SELECT * FROM drivers ORDER BY created_at DESC'
+    );
+  }
+
   async searchByName(query: string): Promise<Driver[]> {
     return db.all<Driver>(
       `SELECT * FROM drivers WHERE status = 'approved' AND name LIKE ? LIMIT 50`,
@@ -82,6 +88,18 @@ export class DriverService {
       'SELECT * FROM drivers WHERE company_id = ? ORDER BY name',
       [company_id]
     );
+  }
+
+  async updateTruckNumber(driver_id: string, truck_number: string): Promise<void> {
+    const now = new Date().toISOString();
+    await db.run(
+      'UPDATE drivers SET truck_number = ?, updated_at = ? WHERE id = ?',
+      [truck_number, now, driver_id]
+    );
+  }
+
+  async deleteAll(): Promise<void> {
+    await db.run('DELETE FROM drivers', []);
   }
 }
 

@@ -77,4 +77,59 @@ router.post('/', adminAuth, async (req: Request, res: Response) => {
   }
 });
 
+// Update company (admin only)
+router.put('/:id', adminAuth, async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      res.status(400).json({ error: 'Name is required' });
+      return;
+    }
+
+    const company = await companyService.getById(req.params.id);
+    if (!company) {
+      res.status(404).json({ error: 'Company not found' });
+      return;
+    }
+
+    // Check if new name already exists (and it's not the same company)
+    const existing = await companyService.getByName(name);
+    if (existing && existing.id !== req.params.id) {
+      res.status(400).json({ error: 'Company name already exists' });
+      return;
+    }
+
+    await companyService.updateName(req.params.id, name);
+    const updated = await companyService.getById(req.params.id);
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating company:', error);
+    res.status(500).json({ error: 'Failed to update company' });
+  }
+});
+
+// Delete company (admin only)
+router.delete('/:id', adminAuth, async (req: Request, res: Response) => {
+  try {
+    const company = await companyService.getById(req.params.id);
+    if (!company) {
+      res.status(404).json({ error: 'Company not found' });
+      return;
+    }
+
+    // Check if company has drivers
+    const drivers = await driverService.getByCompany(req.params.id);
+    if (drivers.length > 0) {
+      res.status(400).json({ error: 'Cannot delete company with drivers. Please reassign drivers first.' });
+      return;
+    }
+
+    await companyService.delete(req.params.id);
+    res.json({ success: true, message: 'Company deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting company:', error);
+    res.status(500).json({ error: 'Failed to delete company' });
+  }
+});
+
 export default router;

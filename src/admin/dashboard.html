@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Driver Approval</title>
+  <title>Driver Management Platform</title>
   <style>
     * {
       margin: 0;
@@ -11,65 +11,127 @@
       box-sizing: border-box;
     }
 
+    :root {
+      --primary: #0066ff;
+      --primary-dark: #0052cc;
+      --primary-light: #e6f0ff;
+      --success: #34c759;
+      --warning: #ff9500;
+      --danger: #ff3b30;
+      --gray-50: #f9f9fb;
+      --gray-100: #f3f3f6;
+      --gray-200: #e8e8ed;
+      --gray-300: #d0d0d8;
+      --gray-400: #a8a8b0;
+      --gray-600: #555555;
+      --gray-700: #333333;
+      --gray-900: #1a1a1a;
+      --text-primary: #1a1a1a;
+      --text-secondary: #555555;
+      --text-tertiary: #888888;
+      --bg: #ffffff;
+      --border: #e8e8ed;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+      --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+      --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--gray-50);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
-      background: #f5f7fa;
-      color: #333;
+      display: flex;
+      flex-direction: column;
     }
 
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-content {
+      max-width: 1600px;
+      margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      gap: 2rem;
     }
 
-    .header h1 {
-      font-size: 24px;
-    }
-
-    .header button {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      border: 1px solid white;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    .header button:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    .tabs {
+    .header-left {
       display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
+      align-items: center;
+      gap: 2rem;
+      flex: 1;
     }
 
-    .tab-btn {
-      padding: 10px 20px;
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid var(--gray-200);
+      margin-left: auto;
+    }
+
+    .nav-tab {
+      background: none;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-tertiary);
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all var(--transition);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
     }
 
-    .tab-btn.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-color: transparent;
+    .nav-tab:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .logout-btn {
+      padding: 0.5rem 1rem;
+      background: var(--gray-100);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: all var(--transition);
+    }
+
+    .logout-btn:hover {
+      background: var(--gray-200);
+    }
+
+    main {
+      flex: 1;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 2rem;
     }
 
     .tab-content {
@@ -78,80 +140,305 @@
 
     .tab-content.active {
       display: block;
+      animation: fadeIn 300ms ease-in;
     }
 
-    .uploads-list {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .upload-item {
-      padding: 20px;
-      border-bottom: 1px solid #eee;
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .section-desc {
+      font-size: 0.95rem;
+      color: var(--text-tertiary);
+      margin-bottom: 2rem;
+    }
+
+    .form-section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: all var(--transition);
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: all var(--transition);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .card-header-info h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .card-header-info p {
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      cursor: pointer;
-      transition: background 0.2s;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
     }
 
-    .upload-item:hover {
-      background: #f9fafb;
+    .card-label {
+      color: var(--text-tertiary);
+      font-weight: 600;
     }
 
-    .upload-info h3 {
-      margin-bottom: 8px;
-      color: #667eea;
+    .card-value {
+      color: var(--text-primary);
+      font-weight: 700;
     }
 
-    .upload-meta {
-      font-size: 13px;
-      color: #999;
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.35rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
-    .upload-actions {
+    .badge-pending {
+      background: rgba(255, 149, 0, 0.2);
+      color: #d97706;
+    }
+
+    .badge-approved {
+      background: rgba(52, 199, 89, 0.2);
+      color: var(--success);
+    }
+
+    .btn-group {
       display: flex;
-      gap: 10px;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
     }
 
     .btn {
-      padding: 8px 16px;
+      padding: 0.6rem 1.25rem;
       border: none;
-      border-radius: 4px;
-      cursor: pointer;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
       font-weight: 600;
-      transition: all 0.3s;
+      cursor: pointer;
+      transition: all var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
-    .btn-approve {
-      background: #10b981;
+    .btn-primary {
+      background: var(--primary);
       color: white;
     }
 
-    .btn-approve:hover {
-      background: #059669;
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      box-shadow: var(--shadow-md);
     }
 
-    .btn-reject {
-      background: #ef4444;
+    .btn-secondary {
+      background: var(--gray-100);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--gray-200);
+    }
+
+    .btn-danger {
+      background: var(--danger);
       color: white;
     }
 
-    .btn-reject:hover {
-      background: #dc2626;
+    .btn-danger:hover {
+      background: #ff2920;
     }
 
-    .btn-view {
-      background: #667eea;
+    .btn-success {
+      background: var(--success);
       color: white;
     }
 
-    .btn-view:hover {
-      background: #5568d3;
+    .btn-success:hover {
+      background: #30b54c;
     }
 
-    .modal {
+    .image-gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .image-item {
+      aspect-ratio: 1;
+      border: 2px solid var(--border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all var(--transition);
+      position: relative;
+      background: var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+
+    .image-item:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+      transform: scale(1.08);
+    }
+
+    .image-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-item.selected {
+      border-color: var(--success);
+      background: rgba(52, 199, 89, 0.1);
+      box-shadow: 0 0 0 2px rgba(52, 199, 89, 0.2);
+    }
+
+    .image-badge {
+      position: absolute;
+      top: 0.25rem;
+      right: 0.25rem;
+      width: 20px;
+      height: 20px;
+      background: var(--success);
+      color: white;
+      border-radius: 50%;
+      border: 2px solid white;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      box-shadow: var(--shadow-md);
+    }
+
+    .image-item.selected .image-badge {
+      display: flex;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+    }
+
+    .empty-state-icon {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state-text {
+      color: var(--text-tertiary);
+    }
+
+    /* Modal */
+    .modal-overlay {
       display: none;
       position: fixed;
       top: 0;
@@ -160,439 +447,1000 @@
       bottom: 0;
       background: rgba(0, 0, 0, 0.5);
       z-index: 1000;
+      padding: 1rem;
+      animation: fadeIn 200ms ease-in;
+    }
+
+    .modal-overlay.active {
+      display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .modal.active {
-      display: flex;
+    .modal {
+      background: var(--bg);
+      border-radius: 0.75rem;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 300ms ease-out;
     }
 
-    .modal-content {
-      background: white;
-      border-radius: 8px;
-      padding: 30px;
-      max-width: 600px;
-      max-height: 80vh;
-      overflow-y: auto;
-      width: 90%;
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
     }
 
-    .modal-header h2 {
-      font-size: 20px;
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
     }
 
-    .close-btn {
-      background: none;
+    .modal-close {
+      width: 32px;
+      height: 32px;
       border: none;
-      font-size: 24px;
+      background: var(--gray-100);
+      border-radius: 50%;
       cursor: pointer;
-      color: #999;
-    }
-
-    .images-gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 10px;
-      margin: 20px 0;
-    }
-
-    .image-thumb {
-      width: 100%;
-      height: 150px;
-      background: #f0f0f0;
-      border-radius: 4px;
+      font-size: 1.5rem;
+      color: var(--text-tertiary);
+      transition: all var(--transition);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #999;
-      font-size: 12px;
+    }
+
+    .modal-close:hover {
+      background: var(--gray-200);
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    /* Checklist */
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: var(--gray-50);
+      border-radius: 0.5rem;
+      margin-bottom: 0.75rem;
+      border: 1px solid var(--border);
+      transition: all var(--transition);
+    }
+
+    .checklist-item.checked {
+      background: rgba(52, 199, 89, 0.1);
+      border-color: var(--success);
+    }
+
+    .checklist-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: var(--success);
+    }
+
+    .checklist-label {
+      flex: 1;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .checklist-status {
+      padding: 0.75rem 1rem;
+      background: rgba(255, 149, 0, 0.1);
+      border: 1px solid rgba(255, 149, 0, 0.3);
+      border-radius: 0.5rem;
+      color: #d97706;
+      font-weight: 600;
       text-align: center;
-      padding: 10px;
-      transition: all 0.2s;
+      margin-bottom: 1rem;
+      transition: all var(--transition);
     }
 
-    .image-thumb:hover {
-      border-color: #667eea;
-      transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    .checklist-status.good {
+      background: rgba(52, 199, 89, 0.1);
+      border-color: rgba(52, 199, 89, 0.3);
+      color: var(--success);
     }
 
-    .image-thumb.selected {
-      border: 3px solid #10b981;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    /* Lightbox */
+    .lightbox-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 200ms ease-in;
     }
 
-    .image-thumb img {
+    .lightbox-overlay.active {
+      display: flex;
+    }
+
+    .lightbox-container {
+      position: relative;
       width: 100%;
       height: 100%;
-      object-fit: cover;
-      border-radius: 2px;
-    }
-
-    .company-form {
-      background: white;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-    }
-
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 500;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-
-    .companies-list {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .company-item {
-      padding: 20px;
-      border-bottom: 1px solid #eee;
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: center;
+      padding: 1rem;
     }
 
-    .company-item:hover {
-      background: #f9fafb;
+    .lightbox-image {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      border-radius: 0.5rem;
     }
 
-    .status-badge {
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
+    .lightbox-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      font-size: 1.5rem;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .status-pending {
-      background: #fef3c7;
-      color: #92400e;
+    .lightbox-close:hover {
+      background: rgba(255, 255, 255, 0.3);
     }
 
-    .status-approved {
-      background: #d1fae5;
-      color: #065f46;
+    .lightbox-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      cursor: pointer;
+      font-size: 1.5rem;
+      transition: all var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .status-rejected {
-      background: #fee2e2;
-      color: #7f1d1d;
+    .lightbox-nav:hover {
+      background: rgba(255, 255, 255, 0.3);
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 40px;
-      color: #999;
-    }
+    .lightbox-prev { left: 1rem; }
+    .lightbox-next { right: 1rem; }
 
-    .loading {
-      text-align: center;
-      padding: 20px;
-      color: #999;
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .nav-tabs {
+        margin-left: 0;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        font-size: 1.5rem;
+      }
+
+      main {
+        padding: 1rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>📊 Admin Dashboard</h1>
-    <button onclick="logout()">Logout</button>
-  </div>
-
-  <div class="container">
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('uploads')">📤 Pending Uploads</button>
-      <button class="tab-btn" onclick="switchTab('companies')">🏢 Companies</button>
-    </div>
-
-    <!-- Uploads Tab -->
-    <div id="uploads" class="tab-content active">
-      <div class="uploads-list" id="uploadsList">
-        <div class="loading">Loading uploads...</div>
+  <header class="header">
+    <div class="header-content">
+      <div class="header-left">
+        <div class="logo">🚚 Driver</div>
+        <nav class="nav-tabs">
+          <button class="nav-tab active" onclick="switchTab('pending')">📋 Pending</button>
+          <button class="nav-tab" onclick="switchTab('companies')">🏢 Companies</button>
+          <button class="nav-tab" onclick="switchTab('drivers')">👥 Drivers</button>
+          <button class="nav-tab" onclick="switchTab('settings')">⚙️ Settings</button>
+        </nav>
       </div>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Pending Tab -->
+    <div id="pending" class="tab-content active">
+      <h1 class="section-title">📋 Pending Reviews</h1>
+      <p class="section-desc">Review and approve driver applications</p>
+      <div id="pending-list" class="grid"></div>
     </div>
 
     <!-- Companies Tab -->
     <div id="companies" class="tab-content">
-      <div class="company-form">
-        <h3>Create New Company</h3>
-        <form id="companyForm" onsubmit="createCompany(event)">
-          <div class="form-group">
-            <label for="companyName">Company Name</label>
-            <input type="text" id="companyName" required placeholder="Enter company name">
+      <h1 class="section-title">🏢 Companies</h1>
+      <p class="section-desc">Manage company profiles</p>
+      
+      <div class="form-section">
+        <form id="company-form" onsubmit="createCompany(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Add New Company</label>
+              <input type="text" id="company-name" class="form-input" placeholder="Enter company name" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Company</button>
           </div>
-          <button type="submit" class="btn btn-approve">Create Company</button>
         </form>
       </div>
 
-      <div class="companies-list" id="companiesList">
-        <div class="loading">Loading companies...</div>
+      <div id="companies-list" class="grid"></div>
+    </div>
+
+    <!-- Drivers Tab -->
+    <div id="drivers" class="tab-content">
+      <h1 class="section-title">👥 Approved Drivers</h1>
+      <p class="section-desc">Manage driver profiles and assignments</p>
+      <div id="drivers-list" class="grid"></div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="settings" class="tab-content">
+      <h1 class="section-title">⚙️ Settings</h1>
+      <p class="section-desc">Manage bot and channel configuration</p>
+      
+      <div class="form-section">
+        <h2 style="margin-bottom: 1rem; color: var(--text-primary);">📢 Telegram Channel</h2>
+        <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">Add your Telegram channel ID to automatically send approved drivers list</p>
+        
+        <div style="background: var(--gray-50); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--border); margin-bottom: 1rem;">
+          <div class="form-group">
+            <label class="form-label">Channel ID</label>
+            <input type="text" id="channel-id-input" class="form-input" placeholder="e.g., -1001234567890" value="">
+          </div>
+          
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="btn btn-primary" onclick="saveChannelId()">💾 Save Channel</button>
+            <button class="btn btn-secondary" onclick="loadChannelId()">🔄 Reload</button>
+          </div>
+        </div>
+
+        <div style="background: var(--gray-100); padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--border); margin-top: 1.5rem;">
+          <h3 style="margin-bottom: 1rem; color: var(--text-primary);">Send Approved Drivers to Channel</h3>
+          <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">This will send all approved drivers information to the configured channel</p>
+          <button class="btn btn-success" onclick="sendDriversToChannel()">📤 Send Drivers List</button>
+          <div id="sync-status" style="margin-top: 1rem; font-size: 0.9rem;"></div>
+        </div>
+
+        <div style="background: var(--danger); background: rgba(255, 59, 48, 0.1); padding: 1.5rem; border-radius: 0.75rem; border: 2px solid var(--danger); margin-top: 1.5rem;">
+          <h3 style="margin-bottom: 1rem; color: var(--danger);">⚠️ Danger Zone</h3>
+          <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">Delete all records permanently. This action cannot be undone.</p>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <button class="btn" style="background: var(--danger); color: white; border: none;" onclick="clearAllCompanies()">🗑️ Clear All Companies</button>
+            <button class="btn" style="background: var(--danger); color: white; border: none;" onclick="clearAllDrivers()">🗑️ Clear All Drivers</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Review Modal -->
+  <div id="review-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Review Driver Application</h2>
+        <button class="modal-close" onclick="closeReviewModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="review-details" style="margin-bottom: 1.5rem;"></div>
+
+        <div style="margin-bottom: 1.5rem;">
+          <label class="form-label">📸 Select Photos</label>
+          <div id="review-images" class="image-gallery"></div>
+        </div>
+
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: var(--gray-50); border-radius: 0.5rem; border: 1px solid var(--border);">
+          <label class="form-label" style="margin-bottom: 1rem;">✅ Verification Checklist</label>
+          <div id="checklist-status" class="checklist-status">⚠️ Please complete the checklist</div>
+          <div id="checklist-items"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Company Assignment</label>
+          <select id="company-select" class="form-select">
+            <option value="">— Select a company —</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Truck Number (Optional)</label>
+          <input type="text" class="form-input" id="truck-number" placeholder="e.g., TRK-001">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Selection Summary</label>
+          <div id="selection-summary" style="padding: 0.75rem 1rem; background: var(--gray-50); border-radius: 0.5rem; font-size: 0.9rem; color: var(--text-tertiary); border: 1px solid var(--border);">
+            Click images to select
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="rejectReview()">Reject</button>
+        <button class="btn btn-primary" onclick="approveReview()">Approve</button>
       </div>
     </div>
   </div>
 
-  <!-- View Upload Modal -->
-  <div id="uploadModal" class="modal">
-    <div class="modal-content">
+  <!-- Edit Company Modal -->
+  <div id="edit-company-modal" class="modal-overlay">
+    <div class="modal">
       <div class="modal-header">
-        <h2>Upload Details</h2>
-        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <h2 class="modal-title">Edit Company</h2>
+        <button class="modal-close" onclick="closeEditCompanyModal()">&times;</button>
       </div>
-      <div id="uploadDetails"></div>
-      <div class="images-gallery" id="imagesGallery"></div>
-      <div class="upload-actions" style="justify-content: flex-end; margin-top: 20px;">
-        <button class="btn btn-reject" onclick="rejectUpload()">❌ Reject</button>
-        <button class="btn btn-approve" onclick="approveUpload()">✅ Approve</button>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Company Name</label>
+          <input type="text" class="form-input" id="edit-company-name">
+        </div>
       </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" onclick="deleteCompany()">Delete</button>
+        <button class="btn btn-secondary" onclick="closeEditCompanyModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCompanyChanges()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Driver Modal -->
+  <div id="edit-driver-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Edit Driver</h2>
+        <button class="modal-close" onclick="closeEditDriverModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Driver Name</label>
+          <input type="text" class="form-input" id="edit-driver-name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Truck Number</label>
+          <input type="text" class="form-input" id="edit-driver-truck">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Company</label>
+          <select id="edit-driver-company" class="form-select">
+            <option value="">— Select a company —</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" onclick="deleteDriver()">Delete</button>
+        <button class="btn btn-secondary" onclick="closeEditDriverModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDriverChanges()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox-overlay">
+    <div class="lightbox-container">
+      <img id="lightbox-image" class="lightbox-image" src="" alt="">
+      <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+      <button class="lightbox-nav lightbox-prev" onclick="prevImage()">‹</button>
+      <button class="lightbox-nav lightbox-next" onclick="nextImage()">›</button>
     </div>
   </div>
 
   <script>
     let currentUploadId = null;
-    const selectedImageIndexes = new Set();
+    let currentEditCompanyId = null;
+    let currentEditDriverId = null;
+    let selectedImages = new Set();
+    let companies = [];
+    let currentLightboxIndex = 0;
+    let currentLightboxImages = [];
+    let currentUploadFileIds = [];
+    let checklist = {
+      fully_good: true,
+      no_manuals: false,
+      no_tablet: false,
+      no_paperlog: false
+    };
 
-    function switchTab(tabName) {
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(tabName).classList.add('active');
-      event.target.classList.add('active');
-
-      if (tabName === 'uploads') loadUploads();
-      if (tabName === 'companies') loadCompanies();
-    }
-
-    async function loadUploads() {
-      try {
-        const response = await fetch('/api/uploads/pending');
-        if (!response.ok) throw new Error('Failed to load uploads');
-
-        const uploads = await response.json();
-        const list = document.getElementById('uploadsList');
-
-        if (uploads.length === 0) {
-          list.innerHTML = '<div class="empty-state">No pending uploads</div>';
-          return;
-        }
-
-        list.innerHTML = uploads.map(u => `
-          <div class="upload-item">
-            <div class="upload-info">
-              <h3>${u.driver_name}</h3>
-              <div class="upload-meta">
-                📍 ${u.group_name} | 🖼️ ${u.image_count} images | ⏳ ${new Date(u.created_at).toLocaleString()}
-              </div>
-            </div>
-            <div class="upload-actions">
-              <button class="btn btn-view" onclick="viewUpload('${u.id}')">View</button>
-              <button class="btn btn-approve" onclick="approveUploadDirect('${u.id}')">Approve</button>
-              <button class="btn btn-reject" onclick="rejectUploadDirect('${u.id}')">Reject</button>
-            </div>
-          </div>
-        `).join('');
-      } catch (error) {
-        console.error('Error loading uploads:', error);
-        document.getElementById('uploadsList').innerHTML = '<div class="empty-state">Error loading uploads</div>';
-      }
-    }
-
-    async function viewUpload(uploadId) {
-      try {
-        const response = await fetch(`/api/uploads/${uploadId}`);
-        if (!response.ok) throw new Error('Failed to load upload');
-
-        const data = await response.json();
-        currentUploadId = uploadId;
-
-        document.getElementById('uploadDetails').innerHTML = `
-          <h3>${data.driver.name}</h3>
-          <div class="upload-meta">
-            <p><strong>Telegram ID:</strong> ${data.driver.telegram_user_id}</p>
-            <p><strong>Group:</strong> ${data.upload.group_name}</p>
-            <p><strong>Images:</strong> ${data.upload.image_count}</p>
-            <p><strong>Status:</strong> <span class="status-badge status-${data.upload.status}">${data.upload.status}</span></p>
-          </div>
-        `;
-
-        // Fetch image URLs
-        const imagesResponse = await fetch(`/api/uploads/${uploadId}/images`);
-        if (!imagesResponse.ok) throw new Error('Failed to load images');
-        
-        const imagesData = await imagesResponse.json();
-        const gallery = document.getElementById('imagesGallery');
-        
-        if (imagesData.images && imagesData.images.length > 0) {
-          selectedImageIndexes.clear();
-          gallery.innerHTML = imagesData.images.map((img, i) => {
-            return `
-              <div class="image-thumb" data-index="${i}" onclick="toggleImageSelection(${i})">
-                <img src="${img.url}" alt="Image ${i + 1}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2250%22 text-anchor=%22middle%22 dy=%22.3em%22%3E📸%3C/text%3E%3C/svg%3E'" />
-              </div>
-            `;
-          }).join('');
-        } else {
-          // Show placeholder if no images
-          gallery.innerHTML = Array(data.upload.image_count).fill(0).map((_, i) => 
-            `<div class="image-thumb">🖼️ Image ${i + 1}</div>`
-          ).join('');
-        }
-
-        document.getElementById('uploadModal').classList.add('active');
-      } catch (error) {
-        alert('Error: ' + error.message);
-      }
-    }
-
-    function toggleImageSelection(index) {
-      const gallery = document.getElementById('imagesGallery');
-      const thumb = gallery.querySelector(`.image-thumb[data-index="${index}"]`);
-      if (!thumb) return;
-
-      if (selectedImageIndexes.has(index)) {
-        selectedImageIndexes.delete(index);
-        thumb.classList.remove('selected');
-      } else {
-        selectedImageIndexes.add(index);
-        thumb.classList.add('selected');
-      }
-    }
-
-    function closeModal() {
-      document.getElementById('uploadModal').classList.remove('active');
-      currentUploadId = null;
-      selectedImageIndexes.clear();
-    }
-
-    async function approveUpload() {
-      if (!currentUploadId) return;
-      try {
-        const response = await fetch(`/api/uploads/${currentUploadId}/approve`, {
-          method: 'POST'
-        });
-        if (!response.ok) throw new Error('Failed to approve');
-        closeModal();
-        loadUploads();
-        alert('✅ Upload approved!');
-      } catch (error) {
-        alert('Error: ' + error.message);
-      }
-    }
-
-    async function rejectUpload() {
-      if (!currentUploadId) return;
-      if (!confirm('Are you sure you want to reject this upload?')) return;
-      try {
-        const response = await fetch(`/api/uploads/${currentUploadId}/reject`, {
-          method: 'POST'
-        });
-        if (!response.ok) throw new Error('Failed to reject');
-        closeModal();
-        loadUploads();
-        alert('❌ Upload rejected!');
-      } catch (error) {
-        alert('Error: ' + error.message);
-      }
-    }
-
-    async function approveUploadDirect(uploadId) {
-      if (!confirm('Approve this upload?')) return;
-      try {
-        await fetch(`/api/uploads/${uploadId}/approve`, { method: 'POST' });
-        loadUploads();
-        alert('✅ Upload approved!');
-      } catch (error) {
-        alert('Error: ' + error.message);
-      }
-    }
-
-    async function rejectUploadDirect(uploadId) {
-      if (!confirm('Reject this upload?')) return;
-      try {
-        await fetch(`/api/uploads/${uploadId}/reject`, { method: 'POST' });
-        loadUploads();
-        alert('❌ Upload rejected!');
-      } catch (error) {
-        alert('Error: ' + error.message);
-      }
-    }
-
-    async function createCompany(event) {
-      event.preventDefault();
-      const name = document.getElementById('companyName').value;
-      try {
-        const response = await fetch('/api/companies', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name })
-        });
-        if (!response.ok) throw new Error('Failed to create company');
-        document.getElementById('companyForm').reset();
-        loadCompanies();
-        alert('✅ Company created!');
-      } catch (error) {
-        alert('Error: ' + error.message);
-      }
-    }
+    const checklistItems = [
+      { id: 'no_manuals', label: '📋 No Manuals Issue', icon: '📋', isIssue: true },
+      { id: 'no_tablet', label: '❌ No Tablet Holder', icon: '❌', isIssue: true },
+      { id: 'no_paperlog', label: '📄 No Paperlog', icon: '📄', isIssue: true }
+    ];
 
     async function loadCompanies() {
       try {
-        const response = await fetch('/api/companies');
-        if (!response.ok) throw new Error('Failed to load companies');
+        const res = await fetch('/api/companies');
+        if (res.ok) {
+          companies = await res.json();
+          populateCompanySelects();
+          renderCompanies();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
 
-        const companies = await response.json();
-        const list = document.getElementById('companiesList');
+    function populateCompanySelects() {
+      ['company-select', 'edit-driver-company'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.innerHTML = '<option value="">— Select a company —</option>';
+          companies.forEach(c => {
+            el.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+          });
+        }
+      });
+    }
 
-        if (companies.length === 0) {
-          list.innerHTML = '<div class="empty-state">No companies yet</div>';
+    async function loadPending() {
+      try {
+        const res = await fetch('/api/uploads/pending');
+        if (res.ok) {
+          renderPending(await res.json());
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadDrivers() {
+      try {
+        const res = await fetch('/api/drivers');
+        if (res.ok) {
+          renderDrivers(await res.json());
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function renderPending(uploads) {
+      const list = document.getElementById('pending-list');
+      if (!uploads.length) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <div class="empty-state-title">No pending reviews</div>
+            <div class="empty-state-text">All drivers approved!</div>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = uploads.map(u => `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-info">
+              <h3>👤 ${u.driver_name}</h3>
+              <p>📍 ${u.group_name}</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div>
+              <div class="card-row">
+                <span class="card-label">Images</span>
+                <span class="card-value">${u.image_count}</span>
+              </div>
+              <div class="card-row">
+                <span class="card-label">Status</span>
+                <span class="badge badge-pending">⏳ Pending</span>
+              </div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="openReviewModal('${u.id}')">📋 Review</button>
+              <button class="btn btn-success" onclick="approveQuick('${u.id}')">✓</button>
+              <button class="btn btn-danger" onclick="rejectQuick('${u.id}')">✕</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderCompanies() {
+      const list = document.getElementById('companies-list');
+      if (!companies.length) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🏢</div>
+            <div class="empty-state-title">No companies yet</div>
+            <div class="empty-state-text">Create one to get started</div>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = companies.map(c => `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-header-info">
+              <h3>🏢 ${c.name}</h3>
+              <p>Created ${new Date(c.created_at).toLocaleDateString()}</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="btn-group">
+              <button class="btn btn-secondary" onclick="openEditCompanyModal('${c.id}', '${c.name}')">✏️ Edit</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderDrivers(drivers) {
+      const list = document.getElementById('drivers-list');
+      if (!drivers.length) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">👥</div>
+            <div class="empty-state-title">No approved drivers</div>
+            <div class="empty-state-text">They'll appear after approval</div>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = drivers.map(d => {
+        const comp = companies.find(c => c.id === d.company_id);
+        return `
+          <div class="card">
+            <div class="card-header">
+              <div class="card-header-info">
+                <h3>👤 ${d.name}</h3>
+                <p>${comp?.name || '—'}</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div>
+                <div class="card-row">
+                  <span class="card-label">Truck</span>
+                  <span class="card-value">${d.truck_number || '—'}</span>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Status</span>
+                  <span class="badge badge-approved">✓ Approved</span>
+                </div>
+              </div>
+              <div class="btn-group">
+                <button class="btn btn-secondary" onclick="openEditDriverModal('${d.id}', '${d.name}', '${d.truck_number || ''}', '${d.company_id || ''}')">✏️ Edit</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderChecklist() {
+      const container = document.getElementById('checklist-items');
+      container.innerHTML = checklistItems.map(item => {
+        const isChecked = checklist[item.id] ? 'checked' : '';
+        return `
+          <div class="checklist-item" id="checklist-${item.id}">
+            <input type="checkbox" id="check-${item.id}" ${isChecked} onchange="updateChecklistStatus()">
+            <label class="checklist-label" for="check-${item.id}">${item.label}</label>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateChecklistStatus() {
+      // Get current checkbox states for issues
+      const hasIssues = 
+        document.getElementById('check-no_manuals').checked || 
+        document.getElementById('check-no_tablet').checked || 
+        document.getElementById('check-no_paperlog').checked;
+
+      // Update state
+      checklistItems.forEach(item => {
+        checklist[item.id] = document.getElementById(`check-${item.id}`).checked;
+        const el = document.getElementById(`checklist-${item.id}`);
+        if (checklist[item.id]) {
+          el.classList.add('checked');
+        } else {
+          el.classList.remove('checked');
+        }
+      });
+
+      // Update status indicator based on issues
+      const statusEl = document.getElementById('checklist-status');
+      
+      if (!hasIssues) {
+        statusEl.textContent = '✅ All Good! Driver is Ready';
+        statusEl.classList.add('good');
+      } else {
+        statusEl.textContent = '⚠️ Driver has issues - Select issues below';
+        statusEl.classList.remove('good');
+      }
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(tab).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tab === 'pending') loadPending();
+      if (tab === 'companies') loadCompanies();
+      if (tab === 'drivers') loadDrivers();
+      if (tab === 'settings') loadChannelId();
+    }
+
+    async function openReviewModal(uploadId) {
+      currentUploadId = uploadId;
+      selectedImages.clear();
+      checklist = { fully_good: false, no_manuals: false, no_tablet: false, no_paperlog: false };
+      
+      const res = await fetch(`/api/uploads/${uploadId}`);
+      const { upload, driver } = await res.json();
+      currentUploadFileIds = upload.file_ids ? JSON.parse(upload.file_ids) : [];
+
+      document.getElementById('review-details').innerHTML = `
+        <div class="card-row"><span class="card-label">Driver</span><span class="card-value">${driver.name}</span></div>
+        <div class="card-row"><span class="card-label">Group</span><span class="card-value">${upload.group_name}</span></div>
+      `;
+
+      currentLightboxImages = currentUploadFileIds;
+      document.getElementById('review-images').innerHTML = currentUploadFileIds.map((fid, i) => `
+        <div class="image-item" onclick="toggleImage(${i})" title="Click to select" style="cursor: pointer;">
+          <img src="/api/images/file/${encodeURIComponent(fid)}" alt="Photo ${i + 1}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.style.display='none'">
+          <div class="image-badge">✓</div>
+        </div>
+      `).join('');
+
+      // Reset checklist to default (All Good checked)
+      checklist = { fully_good: true, no_manuals: false, no_tablet: false, no_paperlog: false };
+      renderChecklist();
+      updateChecklistStatus();
+      document.getElementById('review-modal').classList.add('active');
+    }
+
+    function closeReviewModal() {
+      document.getElementById('review-modal').classList.remove('active');
+      currentUploadId = null;
+      selectedImages.clear();
+    }
+
+    function toggleImage(i) {
+      const items = document.querySelectorAll('#review-images .image-item');
+      if (selectedImages.has(i)) {
+        selectedImages.delete(i);
+        items[i].classList.remove('selected');
+      } else {
+        selectedImages.add(i);
+        items[i].classList.add('selected');
+      }
+      const total = currentUploadFileIds.length;
+      const selected = selectedImages.size;
+      document.getElementById('selection-summary').textContent = selected > 0 ? `✓ ${selected}/${total} selected` : `0/${total} selected`;
+    }
+
+    async function approveReview() {
+      if (!selectedImages.size) {
+        alert('Select at least one image');
+        return;
+      }
+
+      const res = await fetch(`/api/uploads/${currentUploadId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_id: document.getElementById('company-select').value || undefined,
+          truck_number: document.getElementById('truck-number').value || undefined,
+          selected_indexes: Array.from(selectedImages),
+          checklist
+        })
+      });
+
+      if (res.ok) {
+        closeReviewModal();
+        loadPending();
+        alert('✅ Driver approved successfully!');
+      }
+    }
+
+    async function rejectReview() {
+      if (!confirm('Reject this driver?')) return;
+      await fetch(`/api/uploads/${currentUploadId}`, { method: 'DELETE' });
+      closeReviewModal();
+      loadPending();
+    }
+
+    async function approveQuick(id) {
+      currentUploadId = id;
+      selectedImages.clear();
+      const res = await fetch(`/api/uploads/${id}`);
+      const { upload } = await res.json();
+      const fileIds = upload.file_ids ? JSON.parse(upload.file_ids) : [];
+      fileIds.forEach((_, i) => selectedImages.add(i));
+      await approveReview();
+    }
+
+    async function rejectQuick(id) {
+      if (!confirm('Reject?')) return;
+      await fetch(`/api/uploads/${id}`, { method: 'DELETE' });
+      loadPending();
+    }
+
+    async function createCompany(e) {
+      e.preventDefault();
+      const name = document.getElementById('company-name').value;
+      await fetch('/api/companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      document.getElementById('company-form').reset();
+      await loadCompanies();
+    }
+
+    function openEditCompanyModal(id, name) {
+      currentEditCompanyId = id;
+      document.getElementById('edit-company-name').value = name;
+      document.getElementById('edit-company-modal').classList.add('active');
+    }
+
+    function closeEditCompanyModal() {
+      document.getElementById('edit-company-modal').classList.remove('active');
+    }
+
+    async function saveCompanyChanges() {
+      const name = document.getElementById('edit-company-name').value;
+      await fetch(`/api/companies/${currentEditCompanyId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      closeEditCompanyModal();
+      await loadCompanies();
+    }
+
+    async function deleteCompany() {
+      if (!confirm('Delete company?')) return;
+      const res = await fetch(`/api/companies/${currentEditCompanyId}`, { method: 'DELETE' });
+      if (res.ok) {
+        closeEditCompanyModal();
+        await loadCompanies();
+      } else {
+        alert('Cannot delete - company has drivers');
+      }
+    }
+
+    function openEditDriverModal(id, name, truck, company) {
+      currentEditDriverId = id;
+      document.getElementById('edit-driver-name').value = name;
+      document.getElementById('edit-driver-truck').value = truck;
+      document.getElementById('edit-driver-company').value = company;
+      document.getElementById('edit-driver-modal').classList.add('active');
+    }
+
+    function closeEditDriverModal() {
+      document.getElementById('edit-driver-modal').classList.remove('active');
+    }
+
+    async function saveDriverChanges() {
+      await fetch(`/api/drivers/${currentEditDriverId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('edit-driver-name').value,
+          truck_number: document.getElementById('edit-driver-truck').value
+        })
+      });
+      const company = document.getElementById('edit-driver-company').value;
+      if (company) {
+        await fetch(`/api/drivers/${currentEditDriverId}/assign`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ company_id: company })
+        });
+      }
+      closeEditDriverModal();
+      await loadDrivers();
+    }
+
+    async function deleteDriver() {
+      if (!confirm('Delete driver?')) return;
+      await fetch(`/api/drivers/${currentEditDriverId}`, { method: 'DELETE' });
+      closeEditDriverModal();
+      await loadDrivers();
+    }
+
+    function openLightbox(i) {
+      currentLightboxIndex = i;
+      const img = document.getElementById('lightbox-image');
+      img.src = `/api/images/file/${encodeURIComponent(currentUploadFileIds[i])}`;
+      img.onerror = () => img.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22600%22%3E%3Crect fill=%23333%22 width=%22800%22 height=%22600%22/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 dominant-baseline=%27middle%27 text-anchor=%27middle%27 font-size=%2748%27 fill=%27white%27%3E📷 Image %3C/text%3E%3C/svg%3E';
+      document.getElementById('lightbox').classList.add('active');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('active');
+    }
+
+    function prevImage() {
+      currentLightboxIndex = (currentLightboxIndex - 1 + currentUploadFileIds.length) % currentUploadFileIds.length;
+      openLightbox(currentLightboxIndex);
+    }
+
+    function nextImage() {
+      currentLightboxIndex = (currentLightboxIndex + 1) % currentUploadFileIds.length;
+      openLightbox(currentLightboxIndex);
+    }
+
+    async function loadChannelId() {
+      try {
+        const res = await fetch('/api/settings/channel');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('channel-id-input').value = data.channelId || '';
+        }
+      } catch (error) {
+        console.error('Error loading channel:', error);
+      }
+    }
+
+    async function saveChannelId() {
+      try {
+        const channelId = document.getElementById('channel-id-input').value.trim();
+        if (!channelId) {
+          alert('Please enter a channel ID');
           return;
         }
 
-        list.innerHTML = companies.map(c => `
-          <div class="company-item">
-            <div>
-              <h3>${c.name}</h3>
-              <div class="upload-meta">Created: ${new Date(c.created_at).toLocaleDateString()}</div>
-            </div>
-          </div>
-        `).join('');
+        const res = await fetch('/api/settings/channel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelId })
+        });
+
+        if (res.ok) {
+          alert('✅ Channel ID saved successfully!');
+          await loadChannelId();
+        } else {
+          alert('❌ Failed to save channel ID');
+        }
       } catch (error) {
-        console.error('Error loading companies:', error);
-        document.getElementById('companiesList').innerHTML = '<div class="empty-state">Error loading companies</div>';
+        console.error('Error saving channel:', error);
+        alert('Error saving channel');
       }
     }
 
-    async function logout() {
+    async function sendDriversToChannel() {
       try {
-        await fetch('/api/auth/logout', { method: 'POST' });
-        window.location.href = '/admin';
+        const statusEl = document.getElementById('sync-status');
+        statusEl.innerHTML = '⏳ Sending drivers to channel...';
+
+        const res = await fetch('/api/settings/channel/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          statusEl.innerHTML = `✅ ${data.message} (${data.count} drivers)`;
+          setTimeout(() => {
+            statusEl.innerHTML = '';
+          }, 5000);
+        } else {
+          const error = await res.json();
+          statusEl.innerHTML = `❌ ${error.error}`;
+        }
       } catch (error) {
-        alert('Error: ' + error.message);
+        console.error('Error sending drivers:', error);
+        document.getElementById('sync-status').innerHTML = '❌ Failed to send drivers';
       }
     }
 
-    // Load initial data
-    loadUploads();
+    async function clearAllCompanies() {
+      const confirmed = confirm('⚠️ This will DELETE ALL COMPANIES permanently!\n\nThis action cannot be undone.\n\nAre you sure?');
+      if (!confirmed) return;
+
+      const secondConfirm = confirm('🚨 FINAL WARNING:\n\nYou are about to delete all companies.\n\nClick OK to proceed or Cancel to stop.');
+      if (!secondConfirm) return;
+
+      try {
+        const res = await fetch('/api/settings/clear/companies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: 'DELETE_ALL_COMPANIES' })
+        });
+
+        if (res.ok) {
+          alert('✅ All companies deleted successfully');
+          await loadCompanies();
+        } else {
+          alert('❌ Failed to clear companies');
+        }
+      } catch (error) {
+        console.error('Error clearing companies:', error);
+        alert('❌ Error clearing companies');
+      }
+    }
+
+    async function clearAllDrivers() {
+      const confirmed = confirm('⚠️ This will DELETE ALL DRIVERS permanently!\n\nThis action cannot be undone.\n\nAre you sure?');
+      if (!confirmed) return;
+
+      const secondConfirm = confirm('🚨 FINAL WARNING:\n\nYou are about to delete all drivers.\n\nClick OK to proceed or Cancel to stop.');
+      if (!secondConfirm) return;
+
+      try {
+        const res = await fetch('/api/settings/clear/drivers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirm: 'DELETE_ALL_DRIVERS' })
+        });
+
+        if (res.ok) {
+          alert('✅ All drivers deleted successfully');
+          await loadDrivers();
+        } else {
+          alert('❌ Failed to clear drivers');
+        }
+      } catch (error) {
+        console.error('Error clearing drivers:', error);
+        alert('❌ Error clearing drivers');
+      }
+    }
+
+    function logout() {
+      if (confirm('Sign out?')) {
+        document.cookie = 'admin_token=; max-age=0; path=/';
+        window.location.href = '/admin/index.html';
+      }
+    }
+
+    loadCompanies();
+    loadPending();
   </script>
 </body>
 </html>

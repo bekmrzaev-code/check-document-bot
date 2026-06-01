@@ -4,6 +4,24 @@ import { approvedImageService } from '../services/approved-image.service';
 
 const router = Router();
 
+// Get file link directly from file_id (for pending uploads)
+router.get('/file/:fileId', async (req: Request, res: Response) => {
+  try {
+    const { fileId } = req.params;
+    const fileLink = await telegramBot.getFileLink(fileId);
+    
+    if (!fileLink) {
+      res.status(404).json({ error: 'Image file not available' });
+      return;
+    }
+
+    res.redirect(fileLink);
+  } catch (error) {
+    console.error('Error getting file link:', error);
+    res.status(500).json({ error: 'Failed to get file link' });
+  }
+});
+
 // Redirect to Telegram direct file URL for a saved approved image
 router.get('/:messageId', async (req: Request, res: Response) => {
   try {
