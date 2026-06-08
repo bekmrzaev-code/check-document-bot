@@ -209,7 +209,7 @@ export class TelegramBot {
 
     this.bot.command('admin', async (ctx) => {
       try {
-        const webAppUrl = `${getAppUrl()}/admin/dashboard.html`;
+        const webAppUrl = `${getAppUrl()}/admin`;
         await ctx.reply('Opening Admin Dashboard...', {
           reply_markup: {
             inline_keyboard: [

@@ -1,5 +1,6 @@
-# Render Blueprint — deploy the DriverFlow backend (Express API + Telegram bot
-# + scheduler + the existing /admin HTML). New > Blueprint, point at this repo.
+# Render Blueprint — deploys the WHOLE DriverFlow project in one web service:
+# Express API + Telegram bot + scheduler + the React admin UI (served at /admin)
+# + the public landing site (/). New > Blueprint, point at this repo.
 #
 # IMPORTANT for Render free tier:
 #  • The disk is EPHEMERAL — SQLite data is wiped on every deploy/restart.
@@ -11,9 +12,10 @@ services:
     name: driverflow-bot
     runtime: node
     plan: free
-    # --include=dev so TypeScript (a devDependency) is available for the build,
-    # even though NODE_ENV=production is set.
-    buildCommand: npm install --include=dev && npm run build
+    # build:all = compile the backend (tsc) AND build the React client.
+    # --include=dev so devDependencies (TypeScript, Vite) are available even
+    # though NODE_ENV=production is set.
+    buildCommand: npm install --include=dev && npm run build:all
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true

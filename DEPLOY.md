@@ -1,7 +1,10 @@
-# Render'ga deploy qilish (uxlab qolmaydigan)
+# Render'ga deploy qilish (to'liq loyiha, uxlab qolmaydigan)
 
-Bu loyiha — Express API + Telegram bot + scheduler + `/admin` panel. Render
-bepul "Web Service" sifatida ishlaydi va o'zini-o'zi ping qilib **uxlab qolmaydi**.
+Bitta Render "Web Service" butun loyihani ishga tushiradi:
+- **React admin UI** → `/admin`
+- Public sayt → `/`
+- API → `/api`
+- Telegram bot + scheduler + keep-alive (servis **uxlab qolmaydi**)
 
 ## 1. Muhim: ma'lumotlar bazasi (Supabase)
 Render'ning bepul diski **efemer** — har deploy'da SQLite o'chib ketadi.
@@ -14,7 +17,8 @@ Shuning uchun **`DATABASE_URL` (Supabase Postgres)** ishlatish shart:
 
 ## 2. Render'da yaratish
 1. [render.com](https://render.com) → **New → Blueprint** → repo'ni tanlang (`render.yaml` o'qiladi).
-   (Yoki **New → Web Service** qo'lda: Build = `npm install --include=dev && npm run build`, Start = `npm start`.)
+   (Yoki **New → Web Service** qo'lda: Build = `npm install --include=dev && npm run build:all`, Start = `npm start`.)
+   > `build:all` backend (tsc) va React client (Vite)'ni birga build qiladi; Express React'ni `/admin`'da serve qiladi.
 2. **Environment** bo'limida quyidagilarni qo'ying:
 
 | Kalit | Qiymat |

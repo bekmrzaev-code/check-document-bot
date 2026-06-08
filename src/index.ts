@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
+import fs from 'fs';
 import cookieParser from 'cookie-parser';
 import { db } from './storage/database';
 import { initTelegramBot } from './bot/telegram';
@@ -25,9 +26,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Serve static files
+// Serve the public landing site
 app.use(express.static(path.join(__dirname, '../public')));
-app.use('/admin', express.static(path.join(__dirname, '../src/admin')));
+
+// Admin UI: serve the built React app at /admin; fall back to the legacy HTML
+// admin when the client hasn't been built (e.g. local dev via Vite on :5173).
+const clientDist = path.join(__dirname, '../client/dist');
+const hasClientBuild = fs.existsSync(path.join(clientDist, 'index.html'));
+const adminRoot = hasClientBuild ? clientDist : path.join(__dirname, '../src/admin');
+app.use('/admin', express.static(adminRoot));
 
 // API Routes
 app.use('/api/uploads', uploadsRouter);
@@ -45,12 +52,19 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.get('/admin', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../src/admin/index.html'));
+  res.sendFile(path.join(adminRoot, 'index.html'));
 });
 
-app.get('/admin/dashboard.html', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../src/admin/dashboard.html'));
-});
+if (hasClientBuild) {
+  // React Router client-side routes (e.g. /admin/drivers, /admin/login)
+  app.get('/admin/*', (req: Request, res: Response) => {
+    res.sendFile(path.join(adminRoot, 'index.html'));
+  });
+} else {
+  app.get('/admin/dashboard.html', (req: Request, res: Response) => {
+    res.sendFile(path.join(adminRoot, 'dashboard.html'));
+  });
+}
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
