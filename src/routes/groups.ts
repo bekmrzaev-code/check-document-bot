@@ -1,118 +1,174 @@
 import { Router, Request, Response } from 'express';
 import { adminAuth } from '../middleware/admin';
 import { telegramBot } from '../bot/telegram';
+import { groupService } from '../services/group.service';
+import { uploadService } from '../services/upload.service';
+import { approvedImageService } from '../services/approved-image.service';
 
 const router = Router();
 
-// ── In-memory group store (persists while server is running) ──────────────────
-export interface TelegramGroup {
-  group_id:     number;
-  group_name:   string;
-  group_type:   'group' | 'supergroup' | 'channel';
-  member_count: number;
-  is_active:    boolean;
-  added_at:     string;
-  last_seen:    string;
-}
+router.post('/sync', adminAuth, async (_req: Request, res: Response) => {
+  try {
+    const uploadGroups = await uploadService.getDistinctGroups();
+    const fromUploads = await groupService.syncFromUploads(uploadGroups);
 
-const groupCache = new Map<number, TelegramGroup>();
+    let refreshed = 0;
+    let failed = 0;
+    let deactivated = 0;
+    if (telegramBot) {
+      const result = await telegramBot.refreshAllGroups();
+      refreshed = result.refreshed;
+      failed = result.failed;
+      deactivated = result.deactivated;
+    }
 
-// ── Exported helpers (call these from your bot handlers) ──────────────────────
-
-export function registerGroup(data: {
-  group_id:      number;
-  group_name:    string;
-  group_type?:   'group' | 'supergroup' | 'channel';
-  member_count?: number;
-}) {
-  const existing = groupCache.get(data.group_id);
-  groupCache.set(data.group_id, {
-    group_id:     data.group_id,
-    group_name:   data.group_name,
-    group_type:   data.group_type ?? 'group',
-    member_count: data.member_count ?? existing?.member_count ?? 0,
-    is_active:    true,
-    added_at:     existing?.added_at ?? new Date().toISOString(),
-    last_seen:    new Date().toISOString(),
-  });
-}
-
-export function markGroupInactive(group_id: number) {
-  const g = groupCache.get(group_id);
-  if (g) groupCache.set(group_id, { ...g, is_active: false });
-}
-
-export function getAllCachedGroups(): TelegramGroup[] {
-  return Array.from(groupCache.values()).sort(
-    (a, b) => new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime()
-  );
-}
-
-// ── Routes ────────────────────────────────────────────────────────────────────
-
-// GET /api/groups
-router.get('/', adminAuth, (_req: Request, res: Response) => {
-  res.json(getAllCachedGroups());
+    const groups = await groupService.getAll();
+    res.json({
+      success: true,
+      from_uploads: fromUploads,
+      refreshed,
+      failed,
+      deactivated,
+      active: groups.filter((g) => g.is_active).length,
+      total: groups.length,
+    });
+  } catch (error) {
+    console.error('Error syncing groups:', error);
+    res.status(500).json({ error: 'Failed to sync groups' });
+  }
 });
 
-// GET /api/groups/stats
-router.get('/stats', adminAuth, (_req: Request, res: Response) => {
-  const all     = getAllCachedGroups();
-  const active  = all.filter(g => g.is_active);
-  const members = active.reduce((sum, g) => sum + (g.member_count || 0), 0);
-  res.json({
-    total:         all.length,
-    active:        active.length,
-    inactive:      all.length - active.length,
-    total_members: members,
-  });
+router.get('/', adminAuth, async (_req: Request, res: Response) => {
+  try {
+    const groups = await groupService.getAll();
+    const counts = await groupService.getDriverStatusCounts();
+    res.json(
+      groups.map((g) => ({
+        ...g,
+        driver_counts: counts[g.group_id] || { approved: 0, pending: 0, rejected: 0, total: 0 },
+      }))
+    );
+  } catch (error) {
+    console.error('Error fetching groups:', error);
+    res.status(500).json({ error: 'Failed to fetch groups' });
+  }
 });
 
-// POST /api/groups/:groupId/message
+// Drivers in a group split by status: { approved, pending, rejected }
+router.get('/:groupId/drivers', adminAuth, async (req: Request, res: Response) => {
+  try {
+    const groupId = Number(req.params.groupId);
+    if (Number.isNaN(groupId)) {
+      res.status(400).json({ error: 'Invalid group id' });
+      return;
+    }
+    const drivers = await groupService.getDriversByGroup(groupId);
+    const withImages = await Promise.all(
+      drivers.map(async (d) => ({
+        ...d,
+        images: await approvedImageService.getByDriverId(d.id),
+      }))
+    );
+    const out: { approved: any[]; pending: any[]; rejected: any[] } = {
+      approved: [],
+      pending: [],
+      rejected: [],
+    };
+    for (const d of withImages) {
+      if (d.status === 'approved') out.approved.push(d);
+      else if (d.status === 'rejected') out.rejected.push(d);
+      else out.pending.push(d);
+    }
+    res.json(out);
+  } catch (error) {
+    console.error('Error fetching group drivers:', error);
+    res.status(500).json({ error: 'Failed to fetch group drivers' });
+  }
+});
+
+router.get('/stats', adminAuth, async (_req: Request, res: Response) => {
+  try {
+    res.json(await groupService.getStats());
+  } catch (error) {
+    console.error('Error fetching group stats:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+router.put('/:groupId', adminAuth, async (req: Request, res: Response) => {
+  try {
+    const { admin_name } = req.body;
+    const groupId = Number(req.params.groupId);
+    const group = await groupService.getById(groupId);
+    if (!group) {
+      res.status(404).json({ error: 'Group not found' });
+      return;
+    }
+    await groupService.setAdminName(groupId, admin_name ?? null);
+    res.json(await groupService.getById(groupId));
+  } catch (error) {
+    console.error('Error updating group:', error);
+    res.status(500).json({ error: 'Failed to update group' });
+  }
+});
+
 router.post('/:groupId/message', adminAuth, async (req: Request, res: Response) => {
   const { text } = req.body;
-  if (!text) { res.status(400).json({ error: 'text is required' }); return; }
+  if (!text) {
+    res.status(400).json({ error: 'text is required' });
+    return;
+  }
 
   const groupId = Number(req.params.groupId);
-  const group   = groupCache.get(groupId);
 
   try {
     await telegramBot.sendMessage(groupId, text, { parse_mode: 'Markdown' });
-    if (group) groupCache.set(groupId, { ...group, last_seen: new Date().toISOString() });
+    await groupService.touch(groupId);
     res.json({ success: true });
   } catch (error: any) {
     console.error('Send message error:', error?.message);
-    if (error?.response?.error_code === 403 && group) markGroupInactive(groupId);
+    if (error?.response?.error_code === 403) {
+      await groupService.markInactive(groupId);
+    }
     res.status(500).json({ error: 'Failed to send message' });
   }
 });
 
-// POST /api/groups/broadcast
 router.post('/broadcast', adminAuth, async (req: Request, res: Response) => {
   const { text } = req.body;
-  if (!text) { res.status(400).json({ error: 'text is required' }); return; }
+  if (!text) {
+    res.status(400).json({ error: 'text is required' });
+    return;
+  }
 
-  const active = getAllCachedGroups().filter(g => g.is_active);
-  let sent = 0, failed = 0;
+  const active = (await groupService.getAll()).filter((g) => g.is_active);
+  let sent = 0;
+  let failed = 0;
 
   for (const g of active) {
     try {
       await telegramBot.sendMessage(g.group_id, text, { parse_mode: 'Markdown' });
-      groupCache.set(g.group_id, { ...g, last_seen: new Date().toISOString() });
+      await groupService.touch(g.group_id);
       sent++;
     } catch (error: any) {
       failed++;
-      if (error?.response?.error_code === 403) markGroupInactive(g.group_id);
+      if (error?.response?.error_code === 403) {
+        await groupService.markInactive(g.group_id);
+      }
     }
   }
 
   res.json({ success: true, sent, failed });
 });
 
-// DELETE /api/groups/:groupId
-router.delete('/:groupId', adminAuth, (req: Request, res: Response) => {
-  groupCache.delete(Number(req.params.groupId));
-  res.json({ success: true });
+router.delete('/:groupId', adminAuth, async (req: Request, res: Response) => {
+  try {
+    await groupService.delete(Number(req.params.groupId));
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting group:', error);
+    res.status(500).json({ error: 'Failed to delete group' });
+  }
 });
 
 export default router;

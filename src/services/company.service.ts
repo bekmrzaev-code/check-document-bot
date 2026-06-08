@@ -25,7 +25,7 @@ export class CompanyService {
 
   async searchByName(query: string): Promise<Company[]> {
     return db.all<Company>(
-      'SELECT * FROM companies WHERE name LIKE ? LIMIT 50',
+      'SELECT * FROM companies WHERE LOWER(name) LIKE LOWER(?) LIMIT 50',
       [`%${query}%`]
     );
   }

@@ -60,10 +60,8 @@ router.post('/:id/approve', adminAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    const imageCache = (global as any).imageCache || {};
-    const cachedFileIds = imageCache[upload.id] || [];
     const storedFileIds = upload.file_ids ? JSON.parse(upload.file_ids) : [];
-    const fileIds = Array.isArray(storedFileIds) && storedFileIds.length > 0 ? storedFileIds : cachedFileIds;
+    const fileIds = Array.isArray(storedFileIds) ? storedFileIds : [];
 
     let approvedFileIds = fileIds;
     if (Array.isArray(selected_indexes)) {
@@ -94,13 +92,24 @@ router.post('/:id/approve', adminAuth, async (req: Request, res: Response) => {
       await driverService.updateTruckNumber(driver.id, truck_number);
     }
 
+    // Save approved images to database
+    for (const fileId of approvedFileIds) {
+      await approvedImageService.create(upload.id, 0, fileId);
+    }
+
+    // Display name prefers the admin's clarifying label, falls back to Telegram name
+    const driverDisplayName = driver?.admin_name?.trim() || driver?.name;
+
     // Send admin notification
-    const notificationMsg = `✅ Upload approved!\nDriver: ${driver?.name}${truck_number ? '\n🚛 Truck: ' + truck_number : ''}\nImages approved: ${approvedFileIds.length}`;
+    const notificationMsg = `✅ Upload approved!\nDriver: ${driverDisplayName}${truck_number ? '\n🚛 Truck: ' + truck_number : ''}\nImages approved: ${approvedFileIds.length}`;
     await telegramBot.sendAdminNotification(notificationMsg);
 
     // Send approval info to configured channel with message + images
     try {
-      const configChannelId = await settingsService.get('channel_id');
+      const configChannelId =
+        (await settingsService.get('channel_id')) ||
+        process.env.PRIVATE_CHANNEL_ID ||
+        null;
       if (configChannelId && driver) {
         // Build checklist status
         const hasIssues = 
@@ -127,7 +136,10 @@ router.post('/:id/approve', adminAuth, async (req: Request, res: Response) => {
 
         // Format approval message with driver info
         let approvalMsg = `🎉 *Driver Approved!*\n\n`;
-        approvalMsg += `👤 *Name:* ${driver.name}\n`;
+        approvalMsg += `👤 *Name:* ${driverDisplayName}\n`;
+        if (driver.admin_name?.trim() && driver.admin_name.trim() !== driver.name) {
+          approvalMsg += `📝 *Telegram name:* ${driver.name}\n`;
+        }
         if (companyName) {
           approvalMsg += `🏢 *Company:* ${companyName}\n`;
         }
@@ -143,10 +155,19 @@ router.post('/:id/approve', adminAuth, async (req: Request, res: Response) => {
         // Send message first
         await telegramBot.sendMessage(Number(configChannelId), approvalMsg, { parse_mode: 'Markdown' });
 
-        // Then send each approved image
+        // Then send each approved image and update message_id in DB
         for (const fileId of approvedFileIds) {
           try {
-            await telegramBot.sendPhoto(Number(configChannelId), fileId);
+            const sent = await telegramBot.sendPhoto(Number(configChannelId), fileId);
+            if (sent?.message_id) {
+              const existing = await approvedImageService.getByUploadIdAndFileId(
+                upload.id,
+                fileId
+              );
+              if (existing) {
+                await approvedImageService.updateMessageId(existing.id, sent.message_id);
+              }
+            }
           } catch (error) {
             console.error('Error sending photo to channel:', error);
           }
@@ -218,11 +239,11 @@ router.post('/:id/reject', adminAuth, async (req: Request, res: Response) => {
     // Update upload status
     await uploadService.updateStatus(upload.id, 'rejected');
 
-    // Clear cache
-    const imageCache = (global as any).imageCache || {};
-    delete imageCache[upload.id];
-
     const driver = await driverService.getById(upload.driver_id);
+
+    if (driver && driver.status === 'pending') {
+      await driverService.updateStatus(driver.id, 'rejected');
+    }
 
     // Send notification
     await telegramBot.sendAdminNotification(

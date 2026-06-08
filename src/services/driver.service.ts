@@ -29,6 +29,7 @@ export class DriverService {
       id,
       telegram_user_id,
       name,
+      admin_name: null,
       status: 'pending',
       company_id: null,
       created_at: now,
@@ -62,7 +63,7 @@ export class DriverService {
 
   async searchByName(query: string): Promise<Driver[]> {
     return db.all<Driver>(
-      `SELECT * FROM drivers WHERE status = 'approved' AND name LIKE ? LIMIT 50`,
+      `SELECT * FROM drivers WHERE status = 'approved' AND LOWER(name) LIKE LOWER(?) LIMIT 50`,
       [`%${query}%`]
     );
   }
@@ -98,7 +99,37 @@ export class DriverService {
     );
   }
 
+  async updateName(id: string, name: string): Promise<void> {
+    const now = new Date().toISOString();
+    await db.run(
+      'UPDATE drivers SET name = ?, updated_at = ? WHERE id = ?',
+      [name, now, id]
+    );
+  }
+
+  async updateAdminName(id: string, admin_name: string | null): Promise<void> {
+    const now = new Date().toISOString();
+    await db.run(
+      'UPDATE drivers SET admin_name = ?, updated_at = ? WHERE id = ?',
+      [admin_name && admin_name.trim() ? admin_name.trim() : null, now, id]
+    );
+  }
+
+  async delete(id: string): Promise<void> {
+    const uploads = await db.all<{ id: string }>(
+      'SELECT id FROM uploads WHERE driver_id = ?',
+      [id]
+    );
+    for (const upload of uploads) {
+      await db.run('DELETE FROM approved_images WHERE upload_id = ?', [upload.id]);
+    }
+    await db.run('DELETE FROM uploads WHERE driver_id = ?', [id]);
+    await db.run('DELETE FROM drivers WHERE id = ?', [id]);
+  }
+
   async deleteAll(): Promise<void> {
+    await db.run('DELETE FROM approved_images', []);
+    await db.run('DELETE FROM uploads', []);
     await db.run('DELETE FROM drivers', []);
   }
 }

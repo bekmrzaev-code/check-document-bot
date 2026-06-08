@@ -46,7 +46,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.get('/', async (req: Request, res: Response) => {
   try {
     const drivers = await driverService.getAllApproved();
-    res.json(drivers);
+    const driversWithImages = await Promise.all(
+      drivers.map(async (driver) => {
+        const images = await approvedImageService.getByDriverId(driver.id);
+        return { ...driver, images };
+      })
+    );
+    res.json(driversWithImages);
   } catch (error) {
     console.error('Error fetching drivers:', error);
     res.status(500).json({ error: 'Failed to fetch drivers' });
@@ -73,7 +79,7 @@ router.post('/:id/assign', adminAuth, async (req: Request, res: Response) => {
 // Update driver (admin only)
 router.put('/:id', adminAuth, async (req: Request, res: Response) => {
   try {
-    const { name, truck_number } = req.body;
+    const { name, admin_name, truck_number } = req.body;
     const driver = await driverService.getById(req.params.id);
 
     if (!driver) {
@@ -82,14 +88,14 @@ router.put('/:id', adminAuth, async (req: Request, res: Response) => {
     }
 
     if (name) {
-      const now = new Date().toISOString();
-      await (global as any).db?.run?.(
-        'UPDATE drivers SET name = ?, updated_at = ? WHERE id = ?',
-        [name, now, req.params.id]
-      );
+      await driverService.updateName(req.params.id, name);
     }
 
-    if (truck_number) {
+    if (admin_name !== undefined) {
+      await driverService.updateAdminName(req.params.id, admin_name);
+    }
+
+    if (truck_number !== undefined) {
       await driverService.updateTruckNumber(req.params.id, truck_number);
     }
 
@@ -110,11 +116,7 @@ router.delete('/:id', adminAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    // Delete associated images and uploads
-    await (global as any).db?.run?.(
-      'DELETE FROM drivers WHERE id = ?',
-      [req.params.id]
-    );
+    await driverService.delete(req.params.id);
 
     res.json({ success: true, message: 'Driver deleted successfully' });
   } catch (error) {

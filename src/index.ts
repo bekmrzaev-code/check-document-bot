@@ -4,6 +4,7 @@ import path from 'path';
 import cookieParser from 'cookie-parser';
 import { db } from './storage/database';
 import { initTelegramBot } from './bot/telegram';
+import { startScheduler } from './scheduler';
 
 // Routes
 import uploadsRouter from './routes/uploads';
@@ -12,6 +13,8 @@ import driversRouter from './routes/drivers';
 import authRouter from './routes/auth';
 import imagesRouter from './routes/images';
 import settingsRouter from './routes/settings';
+import groupsRouter from './routes/groups';
+import schedulesRouter from './routes/schedules';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +35,8 @@ app.use('/api/drivers', driversRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/images', imagesRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/groups', groupsRouter);
+app.use('/api/schedules', schedulesRouter);
 
 // Public routes
 app.get('/', (req: Request, res: Response) => {
@@ -71,7 +76,9 @@ async function start() {
       console.warn('⚠️  BOT_TOKEN not set. Bot will not start.');
     } else {
       console.log('🤖 Starting Telegram bot...');
-      initTelegramBot(botToken);
+      await initTelegramBot(botToken);
+      // Daily recurring group messages (needs the bot to deliver)
+      startScheduler();
     }
 
     // Start server

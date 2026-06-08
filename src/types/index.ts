@@ -4,7 +4,8 @@ export type UploadStatus = 'pending' | 'approved' | 'rejected';
 export interface Driver {
   id: string;
   telegram_user_id: number;
-  name: string;
+  name: string;              // original name from Telegram (shown small)
+  admin_name?: string | null; // admin's clarifying label (shown large)
   status: DriverStatus;
   company_id: string | null;
   truck_number?: string | null;
@@ -22,6 +23,7 @@ export interface Upload {
   id: string;
   driver_id: string;
   group_name: string;
+  group_id?: number | null;
   status: UploadStatus;
   image_count: number;
   file_ids?: string | null;

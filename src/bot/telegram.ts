@@ -1,17 +1,31 @@
 import { Telegraf, Context } from 'telegraf';
-import { Message } from 'telegraf/types';
-import axios from 'axios';
+import { Chat } from 'telegraf/types';
 import { driverService } from '../services/driver.service';
 import { uploadService } from '../services/upload.service';
-import { approvedImageService } from '../services/approved-image.service';
+import { groupService } from '../services/group.service';
+
+function getAppUrl(): string {
+  return process.env.ADMIN_URL || process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+}
+
+const ACTIVE_BOT_STATUSES = new Set(['member', 'administrator', 'creator', 'restricted']);
 
 interface BotContext extends Context {
   session?: any;
 }
 
+interface ImageBuffer {
+  images: string[];
+  groupName: string;
+  groupId: number;
+  userId: number;
+  senderName: string;
+}
+
 export class TelegramBot {
   private bot: Telegraf<BotContext>;
-  private imageBuffer: Map<string, { images: string[]; groupName: string; userId: number; senderName: string }>;
+  private imageBuffer: Map<string, ImageBuffer>;
+  private botUserId: number | null = null;
 
   constructor(token: string) {
     this.bot = new Telegraf<BotContext>(token);
@@ -19,24 +33,113 @@ export class TelegramBot {
     this.setupHandlers();
   }
 
+  private async registerGroupChat(
+    chat: Chat.GroupChat | Chat.SupergroupChat,
+    options: { fetchCount?: boolean; log?: boolean } = {}
+  ): Promise<void> {
+    const { fetchCount = true, log = true } = options;
+
+    // Only hit the Telegram API for member count when explicitly asked
+    // (e.g. on add / sync). On every incoming message we keep the existing
+    // count to avoid an API call + rate limits per message.
+    let memberCount: number | undefined;
+    if (fetchCount) {
+      try {
+        memberCount = await this.bot.telegram.getChatMembersCount(chat.id);
+      } catch {
+        // Bot may lack permission to read member count
+      }
+    }
+
+    await groupService.register({
+      group_id: chat.id,
+      group_name: chat.title || 'Unknown Group',
+      group_type: chat.type,
+      member_count: memberCount,
+    });
+
+    if (log) console.log(`[Groups] Registered: ${chat.title} (${chat.id})`);
+  }
+
   private setupHandlers(): void {
-    // Listen to photos in groups
+    // Catch ALL group activity (text, commands, photos, etc.)
+    this.bot.use(async (ctx, next) => {
+      const chat = ctx.chat;
+      if (chat && (chat.type === 'group' || chat.type === 'supergroup')) {
+        try {
+          // lightweight: no per-message API call, no log spam
+          await this.registerGroupChat(chat, { fetchCount: false, log: false });
+        } catch (error) {
+          console.error('[Groups] Middleware register error:', error);
+        }
+      }
+      return next();
+    });
+
+    // Bot added/removed from groups
+    this.bot.on('my_chat_member', async (ctx) => {
+      try {
+        const update = ctx.update.my_chat_member;
+        const chat = update.chat;
+        if (chat.type !== 'group' && chat.type !== 'supergroup') {
+          return;
+        }
+
+        const status = update.new_chat_member.status;
+        console.log(`[Groups] my_chat_member: ${chat.title} → ${status}`);
+
+        if (ACTIVE_BOT_STATUSES.has(status)) {
+          await this.registerGroupChat(chat);
+        } else if (status === 'left' || status === 'kicked') {
+          await groupService.markInactive(chat.id);
+          console.log(`[Groups] Marked inactive: ${chat.title}`);
+        }
+      } catch (error) {
+        console.error('Error handling my_chat_member:', error);
+      }
+    });
+
+    // Legacy: bot added via new_chat_members event
+    this.bot.on('new_chat_members', async (ctx) => {
+      try {
+        const chat = ctx.chat;
+        if (chat.type !== 'group' && chat.type !== 'supergroup') {
+          return;
+        }
+
+        const members = ctx.message.new_chat_members || [];
+        const botWasAdded = this.botUserId
+          ? members.some((m) => m.id === this.botUserId)
+          : members.some((m) => m.is_bot);
+
+        if (botWasAdded) {
+          await this.registerGroupChat(chat);
+          console.log(`[Groups] Bot added to: ${chat.title}`);
+        }
+      } catch (error) {
+        console.error('Error handling new_chat_members:', error);
+      }
+    });
+
+    // Photos in groups
     this.bot.on('photo', async (ctx) => {
       try {
         if (ctx.message.chat.type !== 'group' && ctx.message.chat.type !== 'supergroup') {
           return;
         }
 
-        const photo = ctx.message.photo[ctx.message.photo.length - 1]; // Get highest quality
+        const photo = ctx.message.photo[ctx.message.photo.length - 1];
         const groupName = ctx.message.chat.title || 'Unknown Group';
+        const groupId = ctx.message.chat.id;
         const userId = ctx.message.from.id;
         const senderName = ctx.message.from.first_name || 'Unknown';
 
-        const bufferKey = `${userId}-${ctx.message.chat.id}`;
+        const bufferKey = `${userId}-${groupId}`;
         if (!this.imageBuffer.has(bufferKey)) {
           this.imageBuffer.set(bufferKey, {
             images: [],
             groupName,
+            groupId,
             userId,
             senderName,
           });
@@ -45,8 +148,6 @@ export class TelegramBot {
         const buffer = this.imageBuffer.get(bufferKey)!;
         buffer.images.push(photo.file_id);
 
-        // Acknowledge to driver (silent)
-        // Auto-flush after 5 seconds of inactivity
         if (buffer.images.length === 1) {
           setTimeout(() => {
             this.flushImages(bufferKey);
@@ -57,7 +158,6 @@ export class TelegramBot {
       }
     });
 
-    // Admin commands
     this.bot.command('start', async (ctx) => {
       try {
         await ctx.reply(
@@ -104,18 +204,18 @@ export class TelegramBot {
 
     this.bot.command('admin', async (ctx) => {
       try {
-        const webAppUrl = `${process.env.ADMIN_URL || 'http://localhost:3001'}/admin/dashboard.html`;
+        const webAppUrl = `${getAppUrl()}/admin/dashboard.html`;
         await ctx.reply('Opening Admin Dashboard...', {
           reply_markup: {
             inline_keyboard: [
               [
                 {
                   text: '🔐 Admin Panel',
-                  web_app: { url: webAppUrl }
-                }
-              ]
-            ]
-          }
+                  web_app: { url: webAppUrl },
+                },
+              ],
+            ],
+          },
         });
       } catch (error) {
         console.error('Error in admin command:', error);
@@ -130,23 +230,18 @@ export class TelegramBot {
     }
 
     try {
-      // Create or get driver
-      const driver = await driverService.getOrCreate(
-        buffer.userId,
-        buffer.senderName
-      );
+      const driver = await driverService.getOrCreate(buffer.userId, buffer.senderName);
 
-      // Create upload record
       const upload = await uploadService.create(
         driver.id,
         buffer.groupName,
-        buffer.images.length
+        buffer.images.length,
+        undefined,
+        buffer.groupId
       );
 
-      // Store file_ids in the upload record so pending images are accessible after restart
       await uploadService.updateFileIds(upload.id, buffer.images);
 
-      // Send admin notification
       const adminChatId = process.env.ADMIN_CHAT_ID;
       if (adminChatId && this.bot) {
         const message = `
@@ -161,7 +256,7 @@ export class TelegramBot {
 Upload ID: \`${upload.id}\`
 
 Click the link below to review:
-${process.env.ADMIN_URL || 'http://localhost:3000'}/admin?upload=${upload.id}
+${getAppUrl()}/admin?upload=${upload.id}
         `;
 
         await this.bot.telegram.sendMessage(adminChatId, message, {
@@ -177,10 +272,65 @@ ${process.env.ADMIN_URL || 'http://localhost:3000'}/admin?upload=${upload.id}
     this.imageBuffer.delete(bufferKey);
   }
 
-  async uploadToPrivateChannel(
-    fileIds: string[],
-    channelId: string
-  ): Promise<number[]> {
+  async refreshAllGroups(): Promise<{ refreshed: number; failed: number; deactivated: number }> {
+    const groups = await groupService.getAll();
+    let refreshed = 0;
+    let failed = 0;
+    let deactivated = 0;
+
+    for (const group of groups) {
+      try {
+        const chat = await this.bot.telegram.getChat(group.group_id);
+        if (chat.type !== 'group' && chat.type !== 'supergroup') {
+          continue;
+        }
+
+        // Confirm the bot is still a member (don't deactivate on transient errors)
+        let stillMember = true;
+        if (this.botUserId) {
+          try {
+            const me = await this.bot.telegram.getChatMember(group.group_id, this.botUserId);
+            stillMember = ACTIVE_BOT_STATUSES.has(me.status);
+          } catch {
+            // can't verify membership → leave current state untouched
+          }
+        }
+
+        let memberCount = group.member_count;
+        try {
+          memberCount = await this.bot.telegram.getChatMembersCount(group.group_id);
+        } catch {
+          // keep existing count
+        }
+
+        await groupService.register({
+          group_id: group.group_id,
+          group_name: chat.title || group.group_name,
+          group_type: chat.type,
+          member_count: memberCount,
+        });
+
+        if (!stillMember) {
+          await groupService.markInactive(group.group_id);
+          deactivated++;
+        }
+        refreshed++;
+      } catch (error: any) {
+        // Only deactivate when Telegram confirms the bot has no access
+        // (kicked / removed / chat deleted). Keep the group on transient errors.
+        const code = error?.response?.error_code;
+        if (code === 403 || code === 400) {
+          await groupService.markInactive(group.group_id);
+          deactivated++;
+        }
+        failed++;
+      }
+    }
+
+    return { refreshed, failed, deactivated };
+  }
+
+  async uploadToPrivateChannel(fileIds: string[], channelId: string): Promise<number[]> {
     const messageIds: number[] = [];
 
     try {
@@ -229,18 +379,43 @@ ${process.env.ADMIN_URL || 'http://localhost:3000'}/admin?upload=${upload.id}
     }
   }
 
-  async sendPhoto(chatId: number, fileId: string): Promise<void> {
+  async sendPhoto(chatId: number, fileId: string): Promise<{ message_id: number } | null> {
     try {
-      await this.bot.telegram.sendPhoto(chatId, fileId);
+      const result = await this.bot.telegram.sendPhoto(chatId, fileId);
+      return result && 'message_id' in result ? { message_id: result.message_id } : null;
     } catch (error) {
       console.error('Error sending photo:', error);
       throw error;
     }
   }
 
-  start(): void {
-    this.bot.launch();
-    console.log('🤖 Telegram bot started');
+  async start(): Promise<void> {
+    const me = await this.bot.telegram.getMe();
+    this.botUserId = me.id;
+    console.log(`🤖 Bot identity: @${me.username} (${me.id})`);
+
+    // IMPORTANT: with long polling, bot.launch() only resolves when the bot
+    // STOPS. Awaiting it here would block start() forever, so the caller
+    // (initTelegramBot) would never return and the Express server in index.ts
+    // would never start. Fire it without awaiting and surface launch errors.
+    void this.bot
+      .launch({
+        allowedUpdates: [
+          'message',
+          'edited_message',
+          'my_chat_member',
+          'chat_member',
+          'channel_post',
+        ],
+      })
+      .catch((error) => {
+        console.error('Telegram bot launch failed:', error);
+      });
+
+    console.log('🤖 Telegram bot started (listening for group events)');
+    console.log(
+      '💡 Tip: Disable privacy mode in @BotFather (/setprivacy → Disable) so the bot receives all group messages'
+    );
   }
 
   stop(): void {
@@ -250,8 +425,15 @@ ${process.env.ADMIN_URL || 'http://localhost:3000'}/admin?upload=${upload.id}
 
 export let telegramBot: TelegramBot;
 
-export function initTelegramBot(token: string): TelegramBot {
+export async function initTelegramBot(token: string): Promise<TelegramBot> {
   telegramBot = new TelegramBot(token);
-  telegramBot.start();
+  await telegramBot.start();
+
+  const uploadGroups = await uploadService.getDistinctGroups();
+  const synced = await groupService.syncFromUploads(uploadGroups);
+  if (synced > 0) {
+    console.log(`[Groups] Synced ${synced} group(s) from upload history`);
+  }
+
   return telegramBot;
 }

@@ -38,6 +38,23 @@ export class ApprovedImageService {
       [message_id]
     );
   }
+
+  async getByUploadIdAndFileId(
+    upload_id: string,
+    file_id: string
+  ): Promise<ApprovedImage | undefined> {
+    return db.get<ApprovedImage>(
+      'SELECT * FROM approved_images WHERE upload_id = ? AND file_id = ?',
+      [upload_id, file_id]
+    );
+  }
+
+  async updateMessageId(id: string, message_id: number): Promise<void> {
+    await db.run('UPDATE approved_images SET message_id = ? WHERE id = ?', [
+      message_id,
+      id,
+    ]);
+  }
 }
 
 export const approvedImageService = new ApprovedImageService();

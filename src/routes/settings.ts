@@ -69,7 +69,11 @@ router.post('/channel/sync', adminAuth, async (req: Request, res: Response) => {
     message += '─────────────────────\n\n';
 
     for (const driver of approvedDrivers) {
-      message += `👤 *${driver.name}*\n`;
+      const displayName = driver.admin_name?.trim() || driver.name;
+      message += `👤 *${displayName}*\n`;
+      if (driver.admin_name?.trim() && driver.admin_name.trim() !== driver.name) {
+        message += `📝 _${driver.name}_\n`;
+      }
       if (driver.company_id) {
         // Get company name if available
         const companies = await (await import('../services/company.service')).companyService.getById(driver.company_id);
