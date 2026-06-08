@@ -1,0 +1,39 @@
+# Render Blueprint — deploy the DriverFlow backend (Express API + Telegram bot
+# + scheduler + the existing /admin HTML). New > Blueprint, point at this repo.
+#
+# IMPORTANT for Render free tier:
+#  • The disk is EPHEMERAL — SQLite data is wiped on every deploy/restart.
+#    Set DATABASE_URL to your Supabase Postgres connection string so data persists.
+#  • Free Web Services sleep after ~15 min idle — the built-in keep-alive
+#    (src/keepAlive.ts) pings /health using RENDER_EXTERNAL_URL to stay awake.
+services:
+  - type: web
+    name: driverflow-bot
+    runtime: node
+    plan: free
+    # --include=dev so TypeScript (a devDependency) is available for the build,
+    # even though NODE_ENV=production is set.
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: Asia/Tashkent
+      # Secrets — set these in the Render dashboard (sync:false = not in repo):
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      # Supabase Postgres connection string (required on Render for persistence):
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_CHAT_ID
+        sync: false
+      - key: PRIVATE_CHANNEL_ID
+        sync: false
+      # Optional: override keep-alive interval (ms). Default 14 min.
+      # - key: KEEPALIVE_INTERVAL_MS
+      #   value: "840000"

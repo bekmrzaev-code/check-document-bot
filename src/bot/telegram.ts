@@ -5,7 +5,12 @@ import { uploadService } from '../services/upload.service';
 import { groupService } from '../services/group.service';
 
 function getAppUrl(): string {
-  return process.env.ADMIN_URL || process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+  return (
+    process.env.ADMIN_URL ||
+    process.env.APP_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    `http://localhost:${process.env.PORT || 3000}`
+  );
 }
 
 const ACTIVE_BOT_STATUSES = new Set(['member', 'administrator', 'creator', 'restricted']);

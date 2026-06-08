@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { db } from './storage/database';
 import { initTelegramBot } from './bot/telegram';
 import { startScheduler } from './scheduler';
+import { startKeepAlive } from './keepAlive';
 
 // Routes
 import uploadsRouter from './routes/uploads';
@@ -93,6 +94,8 @@ async function start() {
 ╚════════════════════════════════════════╝
       `);
       console.log('Press Ctrl+C to stop');
+      // Keep the service awake on free hosting (Render, etc.)
+      startKeepAlive();
     });
   } catch (error) {
     console.error('Failed to start server:', error);
