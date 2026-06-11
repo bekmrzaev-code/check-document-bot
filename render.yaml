@@ -3,8 +3,8 @@
 # + the public landing site (/). New > Blueprint, point at this repo.
 #
 # IMPORTANT for Render free tier:
-#  • The disk is EPHEMERAL — SQLite data is wiped on every deploy/restart.
-#    Set DATABASE_URL to your Supabase Postgres connection string so data persists.
+#  • DATABASE_URL (Supabase Postgres connection string) is REQUIRED —
+#    the app stores everything in Supabase and won't start without it.
 #  • Free Web Services sleep after ~15 min idle — the built-in keep-alive
 #    (src/keepAlive.ts) pings /health using RENDER_EXTERNAL_URL to stay awake.
 services:

@@ -1,8 +1,8 @@
-# Ma'lumotlar bazasi — sozlash va bepul variantlar
+# Ma'lumotlar bazasi — Supabase (Postgres)
 
 ## Hozirgi holat
 
-Ilova **SQLite** ishlatadi — fayl asosidagi, o'rnatish talab qilmaydi. Ma'lumotlar `data/db.sqlite` faylida saqlanadi.
+Ilova **faqat Supabase (Postgres)** bilan ishlaydi. Lokal `.db` / SQLite fayllar ishlatilmaydi — barcha ma'lumot Supabase'da saqlanadi.
 
 ### Jadvallar
 
@@ -15,69 +15,28 @@ Ilova **SQLite** ishlatadi — fayl asosidagi, o'rnatish talab qilmaydi. Ma'lumo
 | `settings` | Kanal ID va boshqa sozlamalar |
 | `telegram_groups` | Bot qo'shilgan guruhlar |
 | `admin_sessions` | Admin sessiyalari (server qayta ishga tushganda ham saqlanadi) |
+| `scheduled_messages` | Kunlik rejalashtirilgan xabarlar |
 
-### Sozlash
+Jadvallar server birinchi ishga tushganda avtomatik yaratiladi (`CREATE TABLE IF NOT EXISTS`). Xohlasangiz `supabase/schema.sql` ni Supabase SQL editor'da qo'lda ham ishga tushirishingiz mumkin.
+
+## Sozlash
+
+1. https://supabase.com da loyiha oching (bepul tier yetarli: 500 MB DB).
+2. **Project Settings → Database → Connection string** dan **Transaction pooler** ulanish satrini oling.
+3. `.env` ga yozing:
 
 ```env
-DB_PATH=./data/db.sqlite
+DATABASE_URL=postgresql://postgres.<project-ref>:<DB_PASSWORD>@aws-0-<region>.pooler.supabase.com:6543/postgres
 ```
 
----
+`DATABASE_URL` **majburiy** — u bo'lmasa server ishga tushmaydi.
 
-## Bepul ma'lumotlar bazasi variantlari (production uchun)
-
-### 1. Turso (tavsiya etiladi — SQLite mos)
-
-- **Narx:** Bepul tier (500 MB, 9M o'qish/oy)
-- **Sayt:** https://turso.tech
-- **Afzallik:** SQLite bilan mos — minimal kod o'zgarishi
-- **Qachon:** Kichik/o'rta loyiha, edge deployment
-
-### 2. Supabase (PostgreSQL)
-
-- **Narx:** Bepul tier (500 MB DB, 50K MAU)
-- **Sayt:** https://supabase.com
-- **Afzallik:** REST API, auth, real-time, dashboard
-- **Qachon:** Kelajakda mobil ilova yoki murakkab funksiyalar kerak bo'lsa
-
-### 3. Neon (PostgreSQL serverless)
-
-- **Narx:** Bepul tier (0.5 GB storage)
-- **Sayt:** https://neon.tech
-- **Afzallik:** Tez sozlash, avtomatik uyqu rejimi
-- **Qachon:** Vercel/Railway da deploy qilmoqchi bo'lsangiz
-
-### 4. Railway / Render + SQLite volume
-
-- **Narx:** Railway $5 kredit/oy (bepul tier cheklangan)
-- **Afzallik:** Hozirgi kodni o'zgartirmasdan ishlaydi
-- **Qachon:** Tez deploy, oddiy MVP
-
-### 5. MongoDB Atlas (agar NoSQL kerak bo'lsa)
-
-- **Narx:** Bepul tier (512 MB)
-- **Sayt:** https://www.mongodb.com/atlas
-- **Eslatma:** Hozirgi kod SQL — migratsiya katta ish
-
----
-
-## Qaysi birini tanlash?
-
-| Vaziyat | Tavsiya |
-|---------|---------|
-| Lokal rivojlantirish | SQLite (hozirgi) |
-| Production MVP | **Turso** yoki **Railway + SQLite volume** |
-| Katta loyiha | **Supabase** yoki **Neon** |
-| Telegram bot 24/7 | VPS (Hetzner ~€4/oy) + SQLite |
-
----
+Render'da deploy qilganda `DATABASE_URL` ni dashboard'dagi environment variables'ga qo'shing (`render.yaml` da `sync: false` qilib belgilangan).
 
 ## Backup
 
-SQLite faylini muntazam nusxalang:
+Supabase bepul tier'da ham kunlik avtomatik backup bor (Dashboard → Database → Backups). Qo'lda nusxa olish uchun:
 
 ```bash
-cp data/db.sqlite data/backup-$(date +%Y%m%d).sqlite
+pg_dump "$DATABASE_URL" > backup-$(date +%Y%m%d).sql
 ```
-
-Production uchun cron job yoki cloud storage (S3, Backblaze B2) ga avtomatik backup qo'ying.

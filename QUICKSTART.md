@@ -100,7 +100,7 @@ npm start
 |-------|----------|
 | Bot not receiving images | Check bot is admin in group |
 | Login fails | Verify ADMIN_PASSWORD in .env |
-| Database error | Run `rm data/db.sqlite` |
+| Database error | Check DATABASE_URL (Supabase) in .env |
 | Port already in use | Change PORT in .env |
 | Images not uploading | Verify bot is admin in channel |
 
@@ -120,13 +120,12 @@ npm start
 ## 🛠️ Useful Commands
 
 ```bash
-# Reset database
-rm data/db.sqlite
+# Reset database — drop tables in the Supabase SQL editor, e.g.:
+#   drop table drivers, uploads, approved_images, companies,
+#              settings, telegram_groups, admin_sessions, scheduled_messages;
+# (they are re-created automatically on next start)
 
 # Stop bot (Ctrl+C)
-
-# View logs
-tail -f data/*.log
 
 # Install new package
 npm install package-name

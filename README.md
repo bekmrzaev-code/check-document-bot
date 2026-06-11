@@ -8,7 +8,7 @@ A lightweight, production-ready Telegram bot system for driver image approval. D
 - **Admin Web Panel**: Simple HTML interface for approving/rejecting uploads
 - **Private Channel Storage**: Approved images stored in Telegram private channel (message_id only)
 - **Driver Gallery**: Public web app to search and view approved drivers/companies
-- **SQLite Database**: Simple, file-based storage
+- **Supabase Database**: Postgres storage hosted on Supabase
 - **Telegram Notifications**: Admin receives approval notifications
 - **Batch Image Support**: Multiple images per upload
 - **Company Management**: Organize drivers by companies
@@ -33,7 +33,7 @@ src/
 │   ├── company.service.ts
 │   └── approved-image.service.ts
 ├── storage/
-│   └── database.ts         # SQLite database
+│   └── database.ts         # Supabase (Postgres) database
 ├── middleware/
 │   └── admin.ts            # Admin auth middleware
 ├── types/
@@ -117,8 +117,8 @@ ADMIN_PASSWORD=admin123
 PORT=3000
 NODE_ENV=development
 
-# Database
-DB_PATH=./data/db.sqlite
+# Database (required) — Supabase Postgres connection string
+DATABASE_URL=postgresql://postgres.<project-ref>:<DB_PASSWORD>@aws-0-<region>.pooler.supabase.com:6543/postgres
 ```
 
 ### 3. Build & Run
@@ -268,7 +268,7 @@ created_at      TEXT
 - **TypeScript**: Type-safe development
 - **Express.js**: Lightweight web framework
 - **Telegraf**: Telegram bot library
-- **SQLite3**: File-based database
+- **Supabase (Postgres)**: Cloud database via `pg`
 - **UUID**: Unique IDs for records
 
 ### Adding Features
@@ -316,9 +316,9 @@ export class MyService {
 - Ensure channel is private, not public
 
 ### Database errors
-- Delete `data/db.sqlite` to reset
-- Check DB_PATH is writable
-- Ensure data folder exists
+- Verify DATABASE_URL is set to your Supabase Postgres connection string
+- Check the database password in the connection string is correct
+- Tables are created automatically on first start (or run `supabase/schema.sql` in the Supabase SQL editor)
 
 ## 📦 Production Deployment
 

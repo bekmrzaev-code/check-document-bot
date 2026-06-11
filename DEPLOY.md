@@ -7,8 +7,8 @@ Bitta Render "Web Service" butun loyihani ishga tushiradi:
 - Telegram bot + scheduler + keep-alive (servis **uxlab qolmaydi**)
 
 ## 1. Muhim: ma'lumotlar bazasi (Supabase)
-Render'ning bepul diski **efemer** — har deploy'da SQLite o'chib ketadi.
-Shuning uchun **`DATABASE_URL` (Supabase Postgres)** ishlatish shart:
+Ilova faqat Supabase bilan ishlaydi — **`DATABASE_URL` (Supabase Postgres)** majburiy,
+u bo'lmasa server ishga tushmaydi:
 
 1. Supabase → **Project Settings → Database → Connection string → "Transaction pooler" (URI)**
 2. `[YOUR-PASSWORD]` o'rniga DB parolingizni qo'ying. Masalan:
