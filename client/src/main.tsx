@@ -1,17 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 
-// In production the app is served under /admin (Vite base "/admin/");
-// in dev BASE_URL is "/". Strip the trailing slash for React Router.
-const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
-
+// HashRouter keeps the route in the URL hash (e.g. /admin/#/drivers).
+// On refresh the browser only requests /admin/ from the server, so the
+// SPA is always served and the current page is preserved — no server-side
+// catch-all needed. Works the same in dev (Vite) and prod (Express/Render).
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter basename={basename}>
+    <HashRouter>
       <App />
-    </BrowserRouter>
+    </HashRouter>
   </React.StrictMode>
 );
