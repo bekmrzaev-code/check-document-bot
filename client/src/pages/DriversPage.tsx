@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { toast } from '../lib/toast';
-import { Avatar, Icon, NameBlock } from '../lib/ui';
-import { ViewToggle, Loading, EmptyState } from '../components/Common';
-import { Pagination, paginate, PAGE_SIZE } from '../components/Pagination';
+import { Icon, NameBlock } from '../lib/ui';
+import { ViewToggle, Loading, EmptyState, SelectAvatar, SelectAll, SelectionBar } from '../components/Common';
+import { Pagination, paginate } from '../components/Pagination';
 import { Lightbox } from '../components/Lightbox';
 import { EditDriverModal } from '../components/EditDriverModal';
+import { useSelection } from '../lib/useSelection';
 import { driverDisplay, driverImages, imageSrc, fmtDate } from '../lib/helpers';
 import type { Driver, Company, ViewMode } from '../types';
 
@@ -19,6 +20,9 @@ export default function DriversPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Driver | null>(null);
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [bulkCompany, setBulkCompany] = useState('');
+  const sel = useSelection<string>();
 
   async function load() {
     try {
@@ -28,8 +32,9 @@ export default function DriversPage() {
       ]);
       setDrivers(d);
       setCompanies(c);
+      sel.clear();
     } catch {
-      toast('❌ Failed to load drivers');
+      toast('Failed to load drivers');
     } finally {
       setLoading(false);
     }
@@ -52,9 +57,29 @@ export default function DriversPage() {
   }, [drivers, companies, search]);
 
   const pg = paginate(filtered, page);
+  const allSelected = pg.slice.length > 0 && pg.slice.every((d) => sel.isSelected(d.id));
 
   function openLightbox(d: Driver, index: number) {
     setLightbox({ images: driverImages(d).map(imageSrc), index });
+  }
+
+  async function runBulk(label: string, fn: (id: string) => Promise<unknown>) {
+    if (sel.ids.length === 0) return;
+    setBusy(true);
+    let ok = 0, fail = 0;
+    for (const id of sel.ids) { try { await fn(id); ok++; } catch { fail++; } }
+    setBusy(false);
+    toast(`${label}: ${ok} done${fail ? `, ${fail} failed` : ''}`);
+    load();
+  }
+
+  function bulkAssign() {
+    if (!bulkCompany) { toast('Pick a company first'); return; }
+    runBulk('Assigned', (id) => api.post(`/drivers/${id}/assign`, { company_id: bulkCompany }));
+  }
+  function bulkDelete() {
+    if (!confirm(`Delete ${sel.size} selected driver(s)? This removes their uploads too.`)) return;
+    runBulk('Deleted', (id) => api.del(`/drivers/${id}`));
   }
 
   if (loading) return <Loading />;
@@ -66,30 +91,43 @@ export default function DriversPage() {
       </div>
 
       <div className="list-toolbar">
-        <input className="list-search" placeholder="Filter drivers…" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <button className="toolbar-btn" onClick={() => setExpandedId(null)}>Collapse all</button>
+        <span className="search-wrap">
+          <Icon name="search" className="search-ico" />
+          <input className="list-search has-ico" placeholder="Filter drivers…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </span>
+        {pg.slice.length > 0 && <SelectAll checked={allSelected} onChange={() => sel.toggleAll(pg.slice.map((d) => d.id))} />}
+        <button className="toolbar-btn" onClick={() => setExpandedId(null)}><Icon name="collapse" className="" /> Collapse</button>
         <ViewToggle view={view} onChange={setView} />
       </div>
 
+      <SelectionBar count={sel.size} onClear={sel.clear}>
+        <select className="form-select" value={bulkCompany} onChange={(e) => setBulkCompany(e.target.value)}>
+          <option value="">Assign to company…</option>
+          {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <button className="btn btn-primary" disabled={busy} onClick={bulkAssign}><Icon name="building" /> Assign</button>
+        <button className="btn btn-danger" disabled={busy} onClick={bulkDelete}><Icon name="trash" /> Delete</button>
+      </SelectionBar>
+
       {filtered.length === 0 ? (
-        <EmptyState icon="👥" title="No approved drivers" text="Drivers appear here after approval." />
+        <EmptyState icon="users" title="No approved drivers" text="Drivers appear here after approval." />
       ) : view === 'grid' ? (
         <>
           <div className="grid">
             {pg.slice.map((d) => {
               const imgs = driverImages(d);
               return (
-                <div className="card" key={d.id}>
+                <div className={`card ${sel.isSelected(d.id) ? 'selected' : ''}`} key={d.id}>
                   <div className="card-top">
-                    <Avatar name={driverDisplay(d)} variant="green" />
+                    <SelectAvatar name={driverDisplay(d)} variant="green" selected={sel.isSelected(d.id)} onToggle={() => sel.toggle(d.id)} />
                     <div className="card-info"><NameBlock display={driverDisplay(d)} original={d.name} hint /></div>
                     <span className="badge badge-approved">Approved</span>
                   </div>
                   <div className="card-body">
                     <div className="card-meta">
-                      <span className="meta-chip">🏢 {companyName(d.company_id) || 'Unassigned'}</span>
-                      {d.truck_number && <span className="meta-chip">🚛 {d.truck_number}</span>}
-                      <span className="meta-chip">📷 {imgs.length}</span>
+                      <span className="meta-chip"><Icon name="building" className="" /> {companyName(d.company_id) || 'Unassigned'}</span>
+                      {d.truck_number && <span className="meta-chip"><Icon name="truck" className="" /> {d.truck_number}</span>}
+                      <span className="meta-chip"><Icon name="image" className="" /> {imgs.length}</span>
                     </div>
                     {imgs.length > 0 && (
                       <div className="card-photos">
@@ -116,16 +154,14 @@ export default function DriversPage() {
               const imgs = driverImages(d);
               return (
                 <div key={d.id}>
-                  <div className={`list-row ${open ? 'expanded' : ''}`} onClick={() => setExpandedId(open ? null : d.id)}>
-                    <span className="list-num">&lt;{pg.start + i + 1}&gt;</span>
-                    <Avatar name={driverDisplay(d)} variant="green" />
+                  <div className={`list-row ${open ? 'expanded' : ''} ${sel.isSelected(d.id) ? 'selected' : ''}`} onClick={() => setExpandedId(open ? null : d.id)}>
+                    <SelectAvatar name={driverDisplay(d)} variant="green" selected={sel.isSelected(d.id)} onToggle={() => sel.toggle(d.id)} />
                     <div className="list-main">
                       <NameBlock display={driverDisplay(d)} original={d.name} hint />
-                      <div className="list-sub">{companyName(d.company_id) || 'Unassigned'}{d.truck_number ? ` · 🚛 ${d.truck_number}` : ''}</div>
+                      <div className="list-sub"><Icon name="building" className="" /> {companyName(d.company_id) || 'Unassigned'}{d.truck_number ? <> · <Icon name="truck" className="" /> {d.truck_number}</> : null}</div>
                     </div>
                     <div className="list-right">
-                      <span className="badge badge-approved">Approved</span>
-                      <span className="list-chevron">›</span>
+                      <span className="list-chevron"><Icon name="chevron" className="" /></span>
                     </div>
                   </div>
                   {open && (

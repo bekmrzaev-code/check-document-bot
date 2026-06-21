@@ -97,14 +97,19 @@ router.get('/stats', adminAuth, async (_req: Request, res: Response) => {
 
 router.put('/:groupId', adminAuth, async (req: Request, res: Response) => {
   try {
-    const { admin_name } = req.body;
+    const { admin_name, company_id } = req.body;
     const groupId = Number(req.params.groupId);
     const group = await groupService.getById(groupId);
     if (!group) {
       res.status(404).json({ error: 'Group not found' });
       return;
     }
-    await groupService.setAdminName(groupId, admin_name ?? null);
+    if (admin_name !== undefined) {
+      await groupService.setAdminName(groupId, admin_name ?? null);
+    }
+    if (company_id !== undefined) {
+      await groupService.setCompany(groupId, company_id ?? null);
+    }
     res.json(await groupService.getById(groupId));
   } catch (error) {
     console.error('Error updating group:', error);

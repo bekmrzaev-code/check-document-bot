@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal } from './Modal';
 import { api } from '../api/client';
 import { toast } from '../lib/toast';
+import { Icon } from '../lib/ui';
 import { groupDisplay } from '../lib/helpers';
 import type { TelegramGroup } from '../types';
 
@@ -14,10 +15,10 @@ export function SendMessageModal({ group, onClose }: { group: TelegramGroup; onC
     setSending(true);
     try {
       await api.post(`/groups/${group.group_id}/message`, { text });
-      toast('✅ Message sent');
+      toast('Message sent');
       onClose();
     } catch {
-      toast('❌ Failed to send');
+      toast('Failed to send');
       setSending(false);
     }
   }
@@ -29,7 +30,7 @@ export function SendMessageModal({ group, onClose }: { group: TelegramGroup; onC
       footer={
         <>
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={send} disabled={sending}>{sending ? 'Sending…' : '📤 Send'}</button>
+          <button className="btn btn-primary" onClick={send} disabled={sending}><Icon name="send" /> {sending ? 'Sending…' : 'Send'}</button>
         </>
       }
     >

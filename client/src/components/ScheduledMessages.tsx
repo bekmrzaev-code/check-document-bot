@@ -52,30 +52,30 @@ export function ScheduledMessages({ groups }: { groups: TelegramGroup[] }) {
     try {
       await api.post('/schedules', { text: text.trim(), time_of_day: time, target });
       setText(''); setMode('all'); setSelected(new Set());
-      toast('✅ Daily message scheduled');
+      toast('Daily message scheduled');
       load();
     } catch (e: any) {
-      toast('❌ ' + (e?.message || 'Failed to schedule'));
+      toast(e?.message || 'Failed to schedule');
     } finally {
       setSaving(false);
     }
   }
 
   async function toggleActive(s: ScheduledMessage) {
-    try { await api.patch(`/schedules/${s.id}`, { is_active: !s.is_active }); toast(s.is_active ? '⏸ Paused' : '▶ Resumed'); load(); }
-    catch { toast('❌ Failed'); }
+    try { await api.patch(`/schedules/${s.id}`, { is_active: !s.is_active }); toast(s.is_active ? 'Paused' : 'Resumed'); load(); }
+    catch { toast('Failed'); }
   }
 
   async function remove(id: string) {
     if (!confirm('Delete this daily message? The bot will stop sending it.')) return;
-    try { await api.del(`/schedules/${id}`); toast('✅ Schedule deleted'); load(); }
-    catch { toast('❌ Failed'); }
+    try { await api.del(`/schedules/${id}`); toast('Schedule deleted'); load(); }
+    catch { toast('Failed'); }
   }
 
   return (
-    <div className="panel">
-      <div className="panel-title">⏰ Daily scheduled message</div>
-      <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '1rem' }}>
+    <div className="panel side-panel">
+      <div className="panel-title"><Icon name="clock" className="" /> Daily scheduled message</div>
+      <p className="side-hint">
         Pick a time and the bot sends this message to the chosen groups <strong>every day</strong> — until you delete it. Time is server local time.
       </p>
       <div className="form-group">
@@ -105,9 +105,9 @@ export function ScheduledMessages({ groups }: { groups: TelegramGroup[] }) {
               <div className="picker-cats">
                 <span style={{ fontSize: '0.7rem', color: 'var(--muted-2)', alignSelf: 'center' }}>Quick select:</span>
                 <button type="button" className="cat-chip" onClick={() => pickCategory('all')}>All</button>
-                <button type="button" className="cat-chip" onClick={() => pickCategory('approved')}>✓ Has approved</button>
-                <button type="button" className="cat-chip" onClick={() => pickCategory('pending')}>⏳ Has pending</button>
-                <button type="button" className="cat-chip" onClick={() => pickCategory('rejected')}>✕ Has rejected</button>
+                <button type="button" className="cat-chip" onClick={() => pickCategory('approved')}>Has approved</button>
+                <button type="button" className="cat-chip" onClick={() => pickCategory('pending')}>Has pending</button>
+                <button type="button" className="cat-chip" onClick={() => pickCategory('rejected')}>Has rejected</button>
                 <button type="button" className="cat-chip" onClick={() => pickCategory('none')}>Clear</button>
               </div>
               {active.map((g) => {
@@ -115,12 +115,12 @@ export function ScheduledMessages({ groups }: { groups: TelegramGroup[] }) {
                 return (
                   <label className="picker-item" key={g.group_id}>
                     <input type="checkbox" checked={selected.has(g.group_id)} onChange={() => toggleSel(g.group_id)} />
-                    <span style={{ flex: 1 }}>{groupDisplay(g)} <span style={{ color: 'var(--muted-2)' }}>· {g.member_count || 0} 👤</span></span>
+                    <span style={{ flex: 1 }}>{groupDisplay(g)} <span style={{ color: 'var(--muted-2)' }}>· {g.member_count || 0}</span></span>
                     {c && (c.approved + c.pending + c.rejected > 0) && (
                       <span className="status-chips">
-                        {c.approved > 0 && <span className="scount approved">✓ {c.approved}</span>}
-                        {c.pending > 0 && <span className="scount pending">⏳ {c.pending}</span>}
-                        {c.rejected > 0 && <span className="scount rejected">✕ {c.rejected}</span>}
+                        {c.approved > 0 && <span className="scount approved"><Icon name="check" className="" /> {c.approved}</span>}
+                        {c.pending > 0 && <span className="scount pending"><Icon name="clock" className="" /> {c.pending}</span>}
+                        {c.rejected > 0 && <span className="scount rejected"><Icon name="x" className="" /> {c.rejected}</span>}
                       </span>
                     )}
                   </label>
@@ -131,8 +131,8 @@ export function ScheduledMessages({ groups }: { groups: TelegramGroup[] }) {
         </div>
       )}
 
-      <button className="btn btn-primary" style={{ marginTop: '0.85rem' }} onClick={create} disabled={saving}>
-        <Icon name="pending" /> {saving ? 'Saving…' : 'Schedule daily message'}
+      <button className="btn btn-primary btn-block" style={{ marginTop: '0.85rem' }} onClick={create} disabled={saving}>
+        <Icon name="clock" /> {saving ? 'Saving…' : 'Schedule daily message'}
       </button>
 
       <div style={{ marginTop: '1rem' }}>
@@ -147,10 +147,10 @@ export function ScheduledMessages({ groups }: { groups: TelegramGroup[] }) {
                 <div className="sched-time"><b>{s.time_of_day}</b><small>daily</small></div>
                 <div className="sched-main">
                   <div className="sched-text">{s.text}</div>
-                  <div className="sched-meta">📍 {targetLabel} <span style={{ color: 'var(--muted-2)' }}>· {s.last_run_date ? `Last sent ${s.last_run_date}` : 'Not sent yet'}</span></div>
+                  <div className="sched-meta"><Icon name="pin" className="" /> {targetLabel} <span style={{ color: 'var(--muted-2)' }}>· {s.last_run_date ? `Last sent ${s.last_run_date}` : 'Not sent yet'}</span></div>
                 </div>
                 <div className="sched-actions">
-                  <button className="btn btn-secondary btn-icon" title={s.is_active ? 'Pause' : 'Resume'} onClick={() => toggleActive(s)}>{s.is_active ? '⏸' : '▶'}</button>
+                  <button className="btn btn-secondary btn-icon" title={s.is_active ? 'Pause' : 'Resume'} onClick={() => toggleActive(s)}><Icon name={s.is_active ? 'pause' : 'play'} /></button>
                   <button className="btn btn-danger btn-icon" title="Delete" onClick={() => remove(s.id)}><Icon name="trash" /></button>
                 </div>
               </div>

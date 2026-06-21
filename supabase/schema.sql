@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS telegram_groups (
   group_id BIGINT PRIMARY KEY,
   group_name TEXT NOT NULL,
   admin_name TEXT,
+  company_id TEXT,
   group_type TEXT DEFAULT 'group',
   member_count INTEGER DEFAULT 0,
   is_active INTEGER DEFAULT 1,
@@ -85,6 +86,7 @@ CREATE INDEX IF NOT EXISTS idx_drivers_telegram_user_id ON drivers(telegram_user
 CREATE INDEX IF NOT EXISTS idx_uploads_driver_id ON uploads(driver_id);
 CREATE INDEX IF NOT EXISTS idx_uploads_status ON uploads(status);
 CREATE INDEX IF NOT EXISTS idx_drivers_company_id ON drivers(company_id);
+CREATE INDEX IF NOT EXISTS idx_groups_company_id ON telegram_groups(company_id);
 
 -- NOTE: The backend connects with the service/DB credentials (DATABASE_URL),
 -- not the publishable anon key, so it bypasses RLS. If you ever expose these

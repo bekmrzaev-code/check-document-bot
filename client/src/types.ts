@@ -38,6 +38,7 @@ export interface TelegramGroup {
   group_id: number;
   group_name: string;
   admin_name?: string | null;
+  company_id?: string | null;
   group_type: string;
   member_count: number;
   is_active: boolean;

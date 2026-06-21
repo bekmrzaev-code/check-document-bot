@@ -10,7 +10,7 @@ function GuideItem({ icon, title, sub, children }: { icon: string; title: string
       <div className="guide-head" onClick={() => setOpen((o) => !o)}>
         <div className="guide-ico"><Icon name={icon} className="" /></div>
         <div className="guide-htext"><div className="guide-htitle">{title}</div><div className="guide-hsub">{sub}</div></div>
-        <span className="guide-chevron">›</span>
+        <span className="guide-chevron"><Icon name="chevron" className="" /></span>
       </div>
       <div className="guide-body"><div className="guide-inner">{children}</div></div>
     </div>
@@ -33,17 +33,17 @@ export default function SettingsPage() {
 
   async function saveChannel() {
     if (!channelId.trim()) { toast('Enter a channel ID'); return; }
-    try { await api.post('/settings/channel', { channelId: channelId.trim() }); setSavedChannel(channelId.trim()); toast('✅ Channel saved'); }
-    catch { toast('❌ Failed to save'); }
+    try { await api.post('/settings/channel', { channelId: channelId.trim() }); setSavedChannel(channelId.trim()); toast('Channel saved'); }
+    catch { toast('Failed to save'); }
   }
 
   async function sendDrivers() {
     setSyncStatus('Sending…');
     try {
       const d = await api.post<{ message: string; count: number }>('/settings/channel/sync');
-      setSyncStatus(`✅ ${d.message} (${d.count} drivers)`);
+      setSyncStatus(`${d.message} (${d.count} drivers)`);
     } catch (e: any) {
-      setSyncStatus(`❌ ${e?.message || 'Failed'}`);
+      setSyncStatus(`${e?.message || 'Failed'}`);
     }
     setTimeout(() => setSyncStatus(''), 6000);
   }
@@ -51,15 +51,15 @@ export default function SettingsPage() {
   async function clearCompanies() {
     if (!confirm('Delete ALL companies permanently?')) return;
     if (!confirm('Final warning — this cannot be undone. Proceed?')) return;
-    try { await api.post('/settings/clear/companies', { confirm: 'DELETE_ALL_COMPANIES' }); toast('✅ All companies deleted'); }
-    catch { toast('❌ Failed'); }
+    try { await api.post('/settings/clear/companies', { confirm: 'DELETE_ALL_COMPANIES' }); toast('All companies deleted'); }
+    catch { toast('Failed'); }
   }
 
   async function clearDrivers() {
     if (!confirm('Delete ALL drivers permanently?')) return;
     if (!confirm('Final warning — this cannot be undone. Proceed?')) return;
-    try { await api.post('/settings/clear/drivers', { confirm: 'DELETE_ALL_DRIVERS' }); toast('✅ All drivers deleted'); }
-    catch { toast('❌ Failed'); }
+    try { await api.post('/settings/clear/drivers', { confirm: 'DELETE_ALL_DRIVERS' }); toast('All drivers deleted'); }
+    catch { toast('Failed'); }
   }
 
   return (
@@ -67,7 +67,7 @@ export default function SettingsPage() {
       <div className="section-header"><div><h2>Settings &amp; Guide</h2><p>How to use the dashboard, plus bot &amp; channel configuration</p></div></div>
 
       <div className="panel">
-        <div className="panel-title">📖 Admin Guide — how to use this dashboard</div>
+        <div className="panel-title"><Icon name="book" className="" /> Admin Guide — how to use this dashboard</div>
         <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '1rem' }}>Tap any topic to expand. New here? Start with <strong style={{ color: 'var(--text)' }}>How it works</strong>.</p>
         <div className="guide-grid">
           <GuideItem icon="pending" title="How it works" sub="The big picture in 30 seconds">
@@ -83,7 +83,7 @@ export default function SettingsPage() {
           <GuideItem icon="check" title="Reviewing &amp; approving" sub="Pending Reviews tab">
             <ul>
               <li>Open a row, <strong>select the photos</strong> to approve, optionally set company &amp; truck, then <strong>Approve</strong>.</li>
-              <li>The green <span className="gk">✓</span> approves all photos instantly; the red <span className="gk">✕</span> rejects.</li>
+              <li>The green <strong>Approve</strong> button approves all photos instantly; the red <strong>Reject</strong> button rejects.</li>
             </ul>
           </GuideItem>
 
@@ -116,7 +116,7 @@ export default function SettingsPage() {
           <GuideItem icon="settings" title="Shortcuts &amp; tips" sub="Work faster">
             <ul>
               <li>Use the <strong>grid/list toggle</strong> on every section.</li>
-              <li>The <span className="gk">&lt;1&gt; &lt;2&gt;</span> numbers help you reference rows.</li>
+              <li>The <span className="gk">1 2 3</span> row numbers help you reference rows.</li>
               <li>Lists paginate at 20 items per page.</li>
             </ul>
           </GuideItem>
@@ -124,7 +124,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="panel">
-        <div className="panel-title">🚀 First-time setup checklist</div>
+        <div className="panel-title"><Icon name="rocket" className="" /> First-time setup checklist</div>
         <div className="setup-list">
           <div className="setup-step"><div className="setup-num">1</div><div className="s-body"><strong>Disable bot privacy</strong><p>In <code>@BotFather → /setprivacy → Disable</code>, so the bot sees group photos.</p></div></div>
           <div className="setup-step"><div className="setup-num">2</div><div className="s-body"><strong>Add the bot to your driver groups</strong><p>Then open <strong>Groups</strong> and press <strong>Sync Groups</strong>.</p></div></div>
@@ -135,27 +135,27 @@ export default function SettingsPage() {
       </div>
 
       <div className="panel">
-        <div className="panel-title">📢 Telegram Channel <span className={`settings-status ${savedChannel ? 'ok' : 'off'}`} style={{ marginLeft: '0.5rem' }}>{savedChannel ? 'Connected' : 'Not set'}</span></div>
+        <div className="panel-title"><Icon name="megaphone" className="" /> Telegram Channel <span className={`settings-status ${savedChannel ? 'ok' : 'off'}`} style={{ marginLeft: '0.5rem' }}>{savedChannel ? 'Connected' : 'Not set'}</span></div>
         <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '1rem' }}>Approved drivers are automatically posted here. The bot must be an <strong style={{ color: 'var(--text)' }}>admin</strong> of the channel.</p>
         <div className="form-group">
           <label className="form-label">Channel ID</label>
           <input className="form-input" placeholder="e.g. -1001234567890" value={channelId} onChange={(e) => setChannelId(e.target.value)} />
         </div>
         <div className="btn-group">
-          <button className="btn btn-primary" onClick={saveChannel}>💾 Save Channel</button>
-          <button className="btn btn-secondary" onClick={loadChannel}>↻ Reload</button>
+          <button className="btn btn-primary" onClick={saveChannel}><Icon name="check" /> Save Channel</button>
+          <button className="btn btn-secondary" onClick={loadChannel}><Icon name="refresh" /> Reload</button>
         </div>
       </div>
 
       <div className="panel">
-        <div className="panel-title">📤 Post drivers list to channel</div>
+        <div className="panel-title"><Icon name="send" className="" /> Post drivers list to channel</div>
         <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '1rem' }}>Send a formatted summary of all approved drivers to your channel right now.</p>
         <button className="btn btn-success" onClick={sendDrivers}>Send Drivers List</button>
         {syncStatus && <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--muted)' }}>{syncStatus}</div>}
       </div>
 
       <div className="danger-panel">
-        <h3>⚠️ Danger Zone</h3>
+        <h3><Icon name="alert" className="" /> Danger Zone</h3>
         <p>Permanently delete all records. This cannot be undone.</p>
         <div className="btn-group">
           <button className="btn btn-danger" onClick={clearCompanies}>Delete All Companies</button>

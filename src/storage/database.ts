@@ -67,12 +67,15 @@ const PG_SCHEMA = [
     group_id BIGINT PRIMARY KEY,
     group_name TEXT NOT NULL,
     admin_name TEXT,
+    company_id TEXT,
     group_type TEXT DEFAULT 'group',
     member_count INTEGER DEFAULT 0,
     is_active INTEGER DEFAULT 1,
     added_at TEXT NOT NULL,
     last_seen TEXT NOT NULL
   )`,
+  // Migration for databases created before company_id existed on groups.
+  `ALTER TABLE telegram_groups ADD COLUMN IF NOT EXISTS company_id TEXT`,
   `CREATE TABLE IF NOT EXISTS admin_sessions (
     session_id TEXT PRIMARY KEY,
     created_at TEXT NOT NULL,
@@ -91,6 +94,7 @@ const PG_SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_uploads_driver_id ON uploads(driver_id)`,
   `CREATE INDEX IF NOT EXISTS idx_uploads_status ON uploads(status)`,
   `CREATE INDEX IF NOT EXISTS idx_drivers_company_id ON drivers(company_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_groups_company_id ON telegram_groups(company_id)`,
 ];
 
 export class Database {
