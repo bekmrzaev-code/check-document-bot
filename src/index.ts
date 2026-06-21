@@ -88,7 +88,7 @@ async function start() {
     // Initialize Telegram bot
     const botToken = process.env.BOT_TOKEN;
     if (!botToken) {
-      console.warn('⚠️  BOT_TOKEN not set. Bot will not start.');
+      console.warn('⚠️  BOT_TOKEN not set. Bot will not start!');
     } else {
       console.log('🤖 Starting Telegram bot...');
       await initTelegramBot(botToken);
