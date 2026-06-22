@@ -32,6 +32,27 @@ export class ApprovedImageService {
     );
   }
 
+  // Batch version: fetch images for many drivers in ONE query and group them
+  // by driver_id — avoids the N+1 (one query per driver) in list endpoints.
+  async getByDriverIds(driver_ids: string[]): Promise<Record<string, ApprovedImage[]>> {
+    const map: Record<string, ApprovedImage[]> = {};
+    if (driver_ids.length === 0) return map;
+    const placeholders = driver_ids.map(() => '?').join(', ');
+    const rows = await db.all<ApprovedImage & { driver_id: string }>(
+      `SELECT ai.*, u.driver_id AS driver_id FROM approved_images ai
+       JOIN uploads u ON ai.upload_id = u.id
+       WHERE u.driver_id IN (${placeholders})
+       ORDER BY ai.created_at DESC`,
+      driver_ids
+    );
+    for (const id of driver_ids) map[id] = [];
+    for (const row of rows) {
+      const { driver_id, ...img } = row as any;
+      (map[driver_id] ||= []).push(img);
+    }
+    return map;
+  }
+
   async getByMessageId(message_id: number): Promise<ApprovedImage | undefined> {
     return db.get<ApprovedImage>(
       'SELECT * FROM approved_images WHERE message_id = ?',

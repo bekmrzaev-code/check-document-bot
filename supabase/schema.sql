@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS drivers (
   status TEXT DEFAULT 'pending',
   company_id TEXT,
   truck_number TEXT,
+  blocked INTEGER DEFAULT 0,
+  fully_approved INTEGER DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -87,6 +89,9 @@ CREATE INDEX IF NOT EXISTS idx_uploads_driver_id ON uploads(driver_id);
 CREATE INDEX IF NOT EXISTS idx_uploads_status ON uploads(status);
 CREATE INDEX IF NOT EXISTS idx_drivers_company_id ON drivers(company_id);
 CREATE INDEX IF NOT EXISTS idx_groups_company_id ON telegram_groups(company_id);
+CREATE INDEX IF NOT EXISTS idx_uploads_group_id ON uploads(group_id);
+CREATE INDEX IF NOT EXISTS idx_approved_images_upload_id ON approved_images(upload_id);
+CREATE INDEX IF NOT EXISTS idx_approved_images_message_id ON approved_images(message_id);
 
 -- NOTE: The backend connects with the service/DB credentials (DATABASE_URL),
 -- not the publishable anon key, so it bypasses RLS. If you ever expose these

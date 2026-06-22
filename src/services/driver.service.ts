@@ -91,6 +91,23 @@ export class DriverService {
     );
   }
 
+  // ── Request gating: "never get request" / "fully approved" ──
+  async setBlocked(id: string, blocked: boolean): Promise<void> {
+    const now = new Date().toISOString();
+    await db.run('UPDATE drivers SET blocked = ?, updated_at = ? WHERE id = ?', [blocked ? 1 : 0, now, id]);
+  }
+
+  async setFullyApproved(id: string, value: boolean): Promise<void> {
+    const now = new Date().toISOString();
+    await db.run('UPDATE drivers SET fully_approved = ?, updated_at = ? WHERE id = ?', [value ? 1 : 0, now, id]);
+  }
+
+  // Re-permit a driver: clear both gates so their uploads create requests again.
+  async allowAgain(id: string): Promise<void> {
+    const now = new Date().toISOString();
+    await db.run('UPDATE drivers SET blocked = 0, fully_approved = 0, updated_at = ? WHERE id = ?', [now, id]);
+  }
+
   async updateTruckNumber(driver_id: string, truck_number: string): Promise<void> {
     const now = new Date().toISOString();
     await db.run(

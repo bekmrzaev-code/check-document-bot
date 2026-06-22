@@ -84,6 +84,14 @@ router.post('/:id/approve', adminAuth, async (req: Request, res: Response) => {
       await driverService.updateStatus(driver.id, 'approved');
     }
 
+    // "Fully approved" only when the checklist flags no issues. A fully
+    // approved driver stops generating new requests (gated in the bot);
+    // one approved WITH issues keeps generating them so they can resubmit.
+    const hasIssues = !!(checklist?.no_manuals || checklist?.no_tablet || checklist?.no_paperlog);
+    if (driver) {
+      await driverService.setFullyApproved(driver.id, !hasIssues);
+    }
+
     if (company_id && driver) {
       await driverService.assignToCompany(driver.id, company_id);
     }

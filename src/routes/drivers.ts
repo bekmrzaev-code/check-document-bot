@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { driverService } from '../services/driver.service';
 import { approvedImageService } from '../services/approved-image.service';
+import { uploadService } from '../services/upload.service';
 import { adminAuth } from '../middleware/admin';
 
 const router = Router();
@@ -104,6 +105,45 @@ router.put('/:id', adminAuth, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error updating driver:', error);
     res.status(500).json({ error: 'Failed to update driver' });
+  }
+});
+
+// Block a driver ("never get request") — future uploads are ignored and any
+// pending requests from them are rejected/cleared.
+router.post('/:id/block', adminAuth, async (req: Request, res: Response) => {
+  try {
+    const driver = await driverService.getById(req.params.id);
+    if (!driver) {
+      res.status(404).json({ error: 'Driver not found' });
+      return;
+    }
+    await driverService.setBlocked(req.params.id, true);
+    // Clear any pending requests already in the queue from this driver.
+    const uploads = await uploadService.getByDriver(req.params.id);
+    for (const u of uploads) {
+      if (u.status === 'pending') await uploadService.updateStatus(u.id, 'rejected');
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error blocking driver:', error);
+    res.status(500).json({ error: 'Failed to block driver' });
+  }
+});
+
+// Re-permit a driver: clear blocked + fully_approved so their uploads create
+// requests again ("give permission again").
+router.post('/:id/allow', adminAuth, async (req: Request, res: Response) => {
+  try {
+    const driver = await driverService.getById(req.params.id);
+    if (!driver) {
+      res.status(404).json({ error: 'Driver not found' });
+      return;
+    }
+    await driverService.allowAgain(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error allowing driver:', error);
+    res.status(500).json({ error: 'Failed to allow driver' });
   }
 });
 
