@@ -12,6 +12,7 @@ export interface TelegramGroup {
   group_id: number;
   group_name: string;            // original Telegram title (shown small)
   admin_name?: string | null;    // admin's clarifying label (shown large)
+  company_id?: string | null;    // optional company this group belongs to
   group_type: 'group' | 'supergroup' | 'channel';
   member_count: number;
   is_active: boolean;
@@ -24,6 +25,7 @@ function rowToGroup(row: any): TelegramGroup {
     group_id: row.group_id,
     group_name: row.group_name,
     admin_name: row.admin_name ?? null,
+    company_id: row.company_id ?? null,
     group_type: row.group_type,
     member_count: row.member_count ?? 0,
     is_active: Boolean(row.is_active),
@@ -97,6 +99,21 @@ export class GroupService {
       'UPDATE telegram_groups SET admin_name = ? WHERE group_id = ?',
       [admin_name && admin_name.trim() ? admin_name.trim() : null, group_id]
     );
+  }
+
+  async setCompany(group_id: number, company_id: string | null): Promise<void> {
+    await db.run(
+      'UPDATE telegram_groups SET company_id = ? WHERE group_id = ?',
+      [company_id && company_id.trim() ? company_id.trim() : null, group_id]
+    );
+  }
+
+  async getByCompany(company_id: string): Promise<TelegramGroup[]> {
+    const rows = await db.all<any>(
+      'SELECT * FROM telegram_groups WHERE company_id = ? ORDER BY last_seen DESC',
+      [company_id]
+    );
+    return rows.map(rowToGroup);
   }
 
   async markInactive(group_id: number): Promise<void> {

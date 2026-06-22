@@ -19,10 +19,10 @@ export function EditDriverModal({
     try {
       await api.put(`/drivers/${driver.id}`, { admin_name: adminName, truck_number: truck });
       if (company) await api.post(`/drivers/${driver.id}/assign`, { company_id: company });
-      toast('✅ Saved');
+      toast('Saved');
       onSaved();
     } catch {
-      toast('❌ Save failed');
+      toast('Save failed');
       setSaving(false);
     }
   }
@@ -31,10 +31,10 @@ export function EditDriverModal({
     if (!confirm('Delete this driver permanently?')) return;
     try {
       await api.del(`/drivers/${driver.id}`);
-      toast('✅ Deleted');
+      toast('Deleted');
       onSaved();
     } catch {
-      toast('❌ Failed');
+      toast('Failed');
     }
   }
 

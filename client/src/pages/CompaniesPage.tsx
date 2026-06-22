@@ -1,39 +1,44 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { toast } from '../lib/toast';
-import { Avatar, Icon, NameBlock } from '../lib/ui';
-import { ViewToggle, Loading, EmptyState } from '../components/Common';
+import { Icon } from '../lib/ui';
+import { ViewToggle, Loading, EmptyState, SelectAvatar, SelectAll, SelectionBar } from '../components/Common';
 import { Pagination, paginate } from '../components/Pagination';
-import { EditCompanyModal } from '../components/EditCompanyModal';
-import { EditDriverModal } from '../components/EditDriverModal';
-import { driverDisplay, driverImages, imageSrc } from '../lib/helpers';
-import type { Company, Driver, ViewMode } from '../types';
+import { useSelection } from '../lib/useSelection';
+import { fmtDate } from '../lib/helpers';
+import type { Company, Driver, TelegramGroup, ViewMode } from '../types';
 
 export default function CompaniesPage() {
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
-  const [driversCache, setDriversCache] = useState<Record<string, Driver[]>>({});
+  const [groupCounts, setGroupCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [view, setView] = useState<ViewMode>('list');
   const [page, setPage] = useState(1);
   const [newName, setNewName] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editing, setEditing] = useState<Company | null>(null);
-  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [busy, setBusy] = useState(false);
+  const sel = useSelection<string>();
 
   async function load() {
     try {
-      const [c, drivers] = await Promise.all([
+      const [c, drivers, groups] = await Promise.all([
         api.get<Company[]>('/companies'),
         api.get<Driver[]>('/drivers'),
+        api.get<TelegramGroup[]>('/groups'),
       ]);
       setCompanies(c);
-      const map: Record<string, number> = {};
-      drivers.forEach((d) => { if (d.company_id) map[d.company_id] = (map[d.company_id] || 0) + 1; });
-      setCounts(map);
+      const dmap: Record<string, number> = {};
+      drivers.forEach((d) => { if (d.company_id) dmap[d.company_id] = (dmap[d.company_id] || 0) + 1; });
+      setCounts(dmap);
+      const gmap: Record<string, number> = {};
+      groups.forEach((g) => { if (g.company_id) gmap[g.company_id] = (gmap[g.company_id] || 0) + 1; });
+      setGroupCounts(gmap);
+      sel.clear();
     } catch {
-      toast('❌ Failed to load companies');
+      toast('Failed to load companies');
     } finally {
       setLoading(false);
     }
@@ -48,18 +53,16 @@ export default function CompaniesPage() {
   }, [companies, search]);
 
   const pg = paginate(filtered, page);
+  const allSelected = pg.slice.length > 0 && pg.slice.every((c) => sel.isSelected(c.id));
 
-  async function toggle(id: string) {
-    if (expandedId === id) { setExpandedId(null); return; }
-    setExpandedId(id);
-    if (!driversCache[id]) {
-      try {
-        const data = await api.get<{ drivers: Driver[] }>(`/companies/${id}/drivers`);
-        setDriversCache((m) => ({ ...m, [id]: data.drivers || [] }));
-      } catch {
-        setDriversCache((m) => ({ ...m, [id]: [] }));
-      }
-    }
+  async function bulkDelete() {
+    if (!confirm(`Delete ${sel.size} selected compan${sel.size !== 1 ? 'ies' : 'y'}? Companies that still have drivers can't be deleted.`)) return;
+    setBusy(true);
+    let ok = 0, fail = 0;
+    for (const id of sel.ids) { try { await api.del(`/companies/${id}`); ok++; } catch { fail++; } }
+    setBusy(false);
+    toast(`Deleted ${ok}${fail ? `, ${fail} skipped (has drivers)` : ''}`);
+    load();
   }
 
   async function createCompany() {
@@ -67,46 +70,20 @@ export default function CompaniesPage() {
     try {
       await api.post('/companies', { name: newName.trim() });
       setNewName('');
-      toast('✅ Company added');
+      toast('Company added');
       load();
     } catch (e: any) {
-      toast('❌ ' + (e?.message || 'Failed to add'));
+      toast(e?.message || 'Failed to add');
     }
   }
 
-  function reloadAll() {
-    setDriversCache({});
-    setEditing(null);
-    setEditingDriver(null);
-    load();
-  }
-
-  function driverMini(d: Driver) {
-    const imgs = driverImages(d).slice(0, 4);
-    return (
-      <div className="driver-mini-row" key={d.id} style={{ flexWrap: 'wrap' }}>
-        <Avatar name={driverDisplay(d)} variant="green" />
-        <span className="driver-mini-name">
-          <NameBlock display={driverDisplay(d)} original={d.name} />
-        </span>
-        <span className="driver-mini-meta">{d.truck_number ? `🚛 ${d.truck_number}` : ''}{d.images?.length ? ` 📷 ${d.images.length}` : ''}</span>
-        <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.72rem' }} onClick={() => setEditingDriver(d)}>
-          <Icon name="edit" /> Edit
-        </button>
-        {imgs.length > 0 && (
-          <div className="photo-strip">
-            {imgs.map((img) => <img key={img.id} src={imageSrc(img)} loading="lazy" onError={(e) => (e.currentTarget.style.display = 'none')} />)}
-          </div>
-        )}
-      </div>
-    );
-  }
+  function open(c: Company) { navigate(`/companies/${c.id}`); }
 
   if (loading) return <Loading />;
 
   return (
     <>
-      <div className="section-header"><div><h2>Companies</h2><p>Organize drivers by company</p></div></div>
+      <div className="section-header"><div><h2>Companies</h2><p>Organize drivers and groups by company</p></div></div>
 
       <div className="panel">
         <div className="form-row">
@@ -121,28 +98,35 @@ export default function CompaniesPage() {
       </div>
 
       <div className="list-toolbar">
-        <input className="list-search" placeholder="Filter companies…" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <button className="toolbar-btn" onClick={() => setExpandedId(null)}>Collapse all</button>
+        <span className="search-wrap">
+          <Icon name="search" className="search-ico" />
+          <input className="list-search has-ico" placeholder="Search companies…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </span>
+        {pg.slice.length > 0 && <SelectAll checked={allSelected} onChange={() => sel.toggleAll(pg.slice.map((c) => c.id))} />}
         <ViewToggle view={view} onChange={setView} />
       </div>
 
+      <SelectionBar count={sel.size} onClear={sel.clear}>
+        <button className="btn btn-danger" disabled={busy} onClick={bulkDelete}><Icon name="trash" /> Delete</button>
+      </SelectionBar>
+
       {filtered.length === 0 ? (
-        <EmptyState icon="🏢" title={companies.length ? 'No matches' : 'No companies yet'} text={companies.length ? 'Try a different filter' : 'Add your first company above'} />
+        <EmptyState icon="building" title={companies.length ? 'No matches' : 'No companies yet'} text={companies.length ? 'Try a different filter' : 'Add your first company above'} />
       ) : view === 'grid' ? (
         <>
           <div className="grid">
             {pg.slice.map((c) => (
-              <div className="card" key={c.id}>
+              <div className={`card card-clickable ${sel.isSelected(c.id) ? 'selected' : ''}`} key={c.id} onClick={() => open(c)}>
                 <div className="card-top">
-                  <Avatar name={c.name} />
-                  <div className="card-info"><div className="entity-name">{c.name}</div><div className="entity-original">{counts[c.id] || 0} driver{(counts[c.id] || 0) !== 1 ? 's' : ''}</div></div>
+                  <SelectAvatar name={c.name} selected={sel.isSelected(c.id)} onToggle={() => sel.toggle(c.id)} />
+                  <div className="card-info"><div className="entity-name">{c.name}</div><div className="entity-original">Created {fmtDate(c.created_at)}</div></div>
+                  <span className="list-chevron"><Icon name="chevron" className="" /></span>
                 </div>
                 <div className="card-body">
                   <div className="card-meta">
-                    <span className="meta-chip">👤 {counts[c.id] || 0}</span>
-                    <span className="meta-chip">Created {new Date(c.created_at).toLocaleDateString()}</span>
+                    <span className="meta-chip"><Icon name="drivers" className="" /> {counts[c.id] || 0} driver{(counts[c.id] || 0) !== 1 ? 's' : ''}</span>
+                    <span className="meta-chip"><Icon name="groups" className="" /> {groupCounts[c.id] || 0} group{(groupCounts[c.id] || 0) !== 1 ? 's' : ''}</span>
                   </div>
-                  <div className="btn-group"><button className="btn btn-secondary" onClick={() => setEditing(c)}><Icon name="edit" /> Edit</button></div>
                 </div>
               </div>
             ))}
@@ -152,43 +136,25 @@ export default function CompaniesPage() {
       ) : (
         <>
           <div className="list-panel">
-            {pg.slice.map((c, i) => {
-              const open = expandedId === c.id;
-              const drivers = driversCache[c.id];
-              return (
-                <div key={c.id}>
-                  <div className={`list-row ${open ? 'expanded' : ''}`} onClick={() => toggle(c.id)}>
-                    <span className="list-num">&lt;{pg.start + i + 1}&gt;</span>
-                    <Avatar name={c.name} />
-                    <div className="list-main">
-                      <div className="entity-name">🏢 {c.name}</div>
-                      <div className="list-sub">{counts[c.id] || 0} driver{(counts[c.id] || 0) !== 1 ? 's' : ''} · Created {new Date(c.created_at).toLocaleDateString()}</div>
-                    </div>
-                    <div className="list-right">
-                      <span className="list-count-badge">{counts[c.id] || 0} 👤</span>
-                      <span className="list-chevron">›</span>
-                    </div>
+            {pg.slice.map((c, i) => (
+              <div className={`list-row ${sel.isSelected(c.id) ? 'selected' : ''}`} key={c.id} onClick={() => open(c)}>
+                <SelectAvatar name={c.name} selected={sel.isSelected(c.id)} onToggle={() => sel.toggle(c.id)} />
+                <div className="list-main">
+                  <div className="entity-name">{c.name}</div>
+                  <div className="list-sub">
+                    <Icon name="drivers" className="" /> {counts[c.id] || 0} driver{(counts[c.id] || 0) !== 1 ? 's' : ''}
+                    {'  ·  '}<Icon name="groups" className="" /> {groupCounts[c.id] || 0} group{(groupCounts[c.id] || 0) !== 1 ? 's' : ''}
                   </div>
-                  {open && (
-                    <div className="list-detail">
-                      {!drivers ? <div className="list-sub" style={{ marginTop: '0.5rem' }}>Loading drivers…</div>
-                        : drivers.length === 0 ? <div className="list-sub" style={{ marginTop: '0.5rem' }}>No drivers assigned to this company yet.</div>
-                          : <div className="driver-mini-list">{drivers.slice(0, 30).map(driverMini)}</div>}
-                      <div className="detail-actions">
-                        <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); setEditing(c); }}><Icon name="edit" /> Edit Company</button>
-                      </div>
-                    </div>
-                  )}
                 </div>
-              );
-            })}
+                <div className="list-right">
+                  <span className="list-chevron"><Icon name="chevron" className="" /></span>
+                </div>
+              </div>
+            ))}
           </div>
           <Pagination {...pg} onPage={setPage} />
         </>
       )}
-
-      {editing && <EditCompanyModal company={editing} onClose={() => setEditing(null)} onSaved={reloadAll} />}
-      {editingDriver && <EditDriverModal driver={editingDriver} companies={companies} onClose={() => setEditingDriver(null)} onSaved={reloadAll} />}
     </>
   );
 }

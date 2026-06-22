@@ -22,8 +22,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '12mb' }));
+app.use(express.urlencoded({ extended: true, limit: '12mb' }));
 app.use(cookieParser());
 
 // Serve the public landing site
@@ -88,7 +88,7 @@ async function start() {
     // Initialize Telegram bot
     const botToken = process.env.BOT_TOKEN;
     if (!botToken) {
-      console.warn('⚠️  BOT_TOKEN not set. Bot will not start.');
+      console.warn('⚠️  BOT_TOKEN not set. Bot will not start!');
     } else {
       console.log('🤖 Starting Telegram bot...');
       await initTelegramBot(botToken);

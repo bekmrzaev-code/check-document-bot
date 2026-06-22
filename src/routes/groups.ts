@@ -97,14 +97,19 @@ router.get('/stats', adminAuth, async (_req: Request, res: Response) => {
 
 router.put('/:groupId', adminAuth, async (req: Request, res: Response) => {
   try {
-    const { admin_name } = req.body;
+    const { admin_name, company_id } = req.body;
     const groupId = Number(req.params.groupId);
     const group = await groupService.getById(groupId);
     if (!group) {
       res.status(404).json({ error: 'Group not found' });
       return;
     }
-    await groupService.setAdminName(groupId, admin_name ?? null);
+    if (admin_name !== undefined) {
+      await groupService.setAdminName(groupId, admin_name ?? null);
+    }
+    if (company_id !== undefined) {
+      await groupService.setCompany(groupId, company_id ?? null);
+    }
     res.json(await groupService.getById(groupId));
   } catch (error) {
     console.error('Error updating group:', error);
@@ -112,53 +117,92 @@ router.put('/:groupId', adminAuth, async (req: Request, res: Response) => {
   }
 });
 
+// Decode base64 data URLs (or raw base64) into Buffers. Accepts the new
+// `photos` array and the legacy single `photo` field.
+function decodePhotos(body: { photos?: unknown; photo?: unknown }): Buffer[] {
+  const list: string[] = Array.isArray(body.photos)
+    ? (body.photos as unknown[]).filter((p): p is string => typeof p === 'string')
+    : typeof body.photo === 'string' ? [body.photo] : [];
+  return list.slice(0, 10).map((p) => {
+    const b64 = p.includes(',') ? p.split(',')[1] : p;
+    return Buffer.from(b64, 'base64');
+  });
+}
+
+// Send a message (optionally with photos) to a list of groups. Photos are
+// uploaded once to the first group; the resulting file_ids are reused for the
+// rest. A single photo is a normal photo; multiple go as an album.
+async function sendToGroups(ids: number[], text: string | undefined, photoBuffers: Buffer[]) {
+  let sent = 0;
+  let failed = 0;
+  let fileIds: string[] | undefined;
+  const caption = text && text.trim() ? text : undefined;
+
+  for (const id of ids) {
+    try {
+      if (photoBuffers.length > 0) {
+        const sources = fileIds ?? photoBuffers.map((b) => ({ source: b }));
+        const res = await telegramBot.sendPhotosWithCaption(id, sources, caption);
+        if (!fileIds && res.file_ids.length === photoBuffers.length) fileIds = res.file_ids;
+      } else {
+        await telegramBot.sendMessage(id, text!, { parse_mode: 'Markdown' });
+      }
+      await groupService.touch(id);
+      sent++;
+    } catch (error: any) {
+      console.error('Send error:', error?.message);
+      failed++;
+      if (error?.response?.error_code === 403) {
+        await groupService.markInactive(id);
+      }
+    }
+  }
+  return { sent, failed };
+}
+
 router.post('/:groupId/message', adminAuth, async (req: Request, res: Response) => {
   const { text } = req.body;
-  if (!text) {
-    res.status(400).json({ error: 'text is required' });
+  const photos = decodePhotos(req.body);
+  if (!text && photos.length === 0) {
+    res.status(400).json({ error: 'text or photo is required' });
     return;
   }
-
   const groupId = Number(req.params.groupId);
-
-  try {
-    await telegramBot.sendMessage(groupId, text, { parse_mode: 'Markdown' });
-    await groupService.touch(groupId);
-    res.json({ success: true });
-  } catch (error: any) {
-    console.error('Send message error:', error?.message);
-    if (error?.response?.error_code === 403) {
-      await groupService.markInactive(groupId);
-    }
+  const result = await sendToGroups([groupId], text, photos);
+  if (result.sent === 0) {
     res.status(500).json({ error: 'Failed to send message' });
+    return;
   }
+  res.json({ success: true, ...result });
+});
+
+// Send one message (optionally with photos) to several selected groups.
+router.post('/bulk-message', adminAuth, async (req: Request, res: Response) => {
+  const { group_ids, text } = req.body;
+  const photos = decodePhotos(req.body);
+  if (!Array.isArray(group_ids) || group_ids.length === 0) {
+    res.status(400).json({ error: 'group_ids is required' });
+    return;
+  }
+  if (!text && photos.length === 0) {
+    res.status(400).json({ error: 'text or photo is required' });
+    return;
+  }
+  const ids = group_ids.map((g: any) => Number(g)).filter((n: number) => !Number.isNaN(n));
+  const result = await sendToGroups(ids, text, photos);
+  res.json({ success: true, ...result });
 });
 
 router.post('/broadcast', adminAuth, async (req: Request, res: Response) => {
   const { text } = req.body;
-  if (!text) {
-    res.status(400).json({ error: 'text is required' });
+  const photos = decodePhotos(req.body);
+  if (!text && photos.length === 0) {
+    res.status(400).json({ error: 'text or photo is required' });
     return;
   }
-
   const active = (await groupService.getAll()).filter((g) => g.is_active);
-  let sent = 0;
-  let failed = 0;
-
-  for (const g of active) {
-    try {
-      await telegramBot.sendMessage(g.group_id, text, { parse_mode: 'Markdown' });
-      await groupService.touch(g.group_id);
-      sent++;
-    } catch (error: any) {
-      failed++;
-      if (error?.response?.error_code === 403) {
-        await groupService.markInactive(g.group_id);
-      }
-    }
-  }
-
-  res.json({ success: true, sent, failed });
+  const result = await sendToGroups(active.map((g) => g.group_id), text, photos);
+  res.json({ success: true, ...result });
 });
 
 router.delete('/:groupId', adminAuth, async (req: Request, res: Response) => {

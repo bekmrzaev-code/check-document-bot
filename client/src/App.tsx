@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage';
 import PendingPage from './pages/PendingPage';
 import DriversPage from './pages/DriversPage';
 import CompaniesPage from './pages/CompaniesPage';
+import CompanyDetailPage from './pages/CompanyDetailPage';
 import GroupsPage from './pages/GroupsPage';
 import SettingsPage from './pages/SettingsPage';
 
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/" element={<PendingPage />} />
         <Route path="/drivers" element={<DriversPage />} />
         <Route path="/companies" element={<CompaniesPage />} />
+        <Route path="/companies/:id" element={<CompanyDetailPage />} />
         <Route path="/groups" element={<GroupsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

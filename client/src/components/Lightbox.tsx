@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Icon } from '../lib/ui';
 
 export function Lightbox({
   images, index, onClose, onIndex,
@@ -19,11 +20,11 @@ export function Lightbox({
   return (
     <div className="lightbox-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <img className="lightbox-image" src={images[index]} alt="" />
-      <button className="lb-btn lb-close" onClick={onClose}>✕</button>
+      <button className="lb-btn lb-close" onClick={onClose}><Icon name="x" className="" /></button>
       {images.length > 1 && (
         <>
-          <button className="lb-btn lb-prev" onClick={() => onIndex((index - 1 + images.length) % images.length)}>‹</button>
-          <button className="lb-btn lb-next" onClick={() => onIndex((index + 1) % images.length)}>›</button>
+          <button className="lb-btn lb-prev" onClick={() => onIndex((index - 1 + images.length) % images.length)}><Icon name="chevron" className="lb-chevron-left" /></button>
+          <button className="lb-btn lb-next" onClick={() => onIndex((index + 1) % images.length)}><Icon name="chevron" className="" /></button>
         </>
       )}
     </div>

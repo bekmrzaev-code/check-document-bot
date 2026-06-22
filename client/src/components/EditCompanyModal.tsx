@@ -17,10 +17,10 @@ export function EditCompanyModal({
     setSaving(true);
     try {
       await api.put(`/companies/${company.id}`, { name: name.trim() });
-      toast('✅ Saved');
+      toast('Saved');
       onSaved();
     } catch (e: any) {
-      toast('❌ ' + (e?.message || 'Save failed'));
+      toast((e?.message || 'Save failed'));
       setSaving(false);
     }
   }
@@ -29,10 +29,10 @@ export function EditCompanyModal({
     if (!confirm('Delete this company?')) return;
     try {
       await api.del(`/companies/${company.id}`);
-      toast('✅ Deleted');
+      toast('Deleted');
       onSaved();
     } catch (e: any) {
-      toast('❌ ' + (e?.message || 'Cannot delete — company has drivers'));
+      toast((e?.message || 'Cannot delete — company has drivers'));
     }
   }
 

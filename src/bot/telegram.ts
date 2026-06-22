@@ -394,6 +394,49 @@ ${getAppUrl()}/admin?upload=${upload.id}
     }
   }
 
+  // Send a photo with an optional caption. `photo` is either an uploaded
+  // buffer ({ source }) or a Telegram file_id string (reuse after first send,
+  // so broadcasting an image to many groups uploads it only once).
+  async sendPhotoWithCaption(
+    chatId: number,
+    photo: { source: Buffer } | string,
+    caption?: string
+  ): Promise<{ message_id: number; file_id?: string }> {
+    const opts = caption ? { caption, parse_mode: 'Markdown' as const } : {};
+    const result: any = await this.bot.telegram.sendPhoto(chatId, photo as any, opts);
+    const sizes: Array<{ file_id: string }> | undefined = result?.photo;
+    const file_id = sizes && sizes.length ? sizes[sizes.length - 1].file_id : undefined;
+    return { message_id: result.message_id, file_id };
+  }
+
+  // Send one or more photos with an optional caption (on the first photo).
+  // Multiple photos go as an album (sendMediaGroup). Each source is a buffer
+  // ({ source }) or a file_id string. Returns the largest file_id per photo
+  // so callers can reuse them for the next group (upload once per broadcast).
+  async sendPhotosWithCaption(
+    chatId: number,
+    photos: Array<{ source: Buffer } | string>,
+    caption?: string
+  ): Promise<{ file_ids: string[] }> {
+    if (photos.length <= 1) {
+      const r = await this.sendPhotoWithCaption(chatId, photos[0], caption);
+      return { file_ids: r.file_id ? [r.file_id] : [] };
+    }
+    const media = photos.slice(0, 10).map((p, i) => ({
+      type: 'photo' as const,
+      media: p as any,
+      ...(i === 0 && caption ? { caption, parse_mode: 'Markdown' as const } : {}),
+    }));
+    const results: any[] = await this.bot.telegram.sendMediaGroup(chatId, media as any);
+    const file_ids = results
+      .map((r) => {
+        const sizes: Array<{ file_id: string }> | undefined = r?.photo;
+        return sizes && sizes.length ? sizes[sizes.length - 1].file_id : undefined;
+      })
+      .filter((x): x is string => !!x);
+    return { file_ids };
+  }
+
   async start(): Promise<void> {
     const me = await this.bot.telegram.getMe();
     this.botUserId = me.id;
