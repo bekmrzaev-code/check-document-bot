@@ -7,6 +7,7 @@ import { Pagination, paginate } from '../components/Pagination';
 import { EditGroupModal } from '../components/EditGroupModal';
 import { SendMessageModal } from '../components/SendMessageModal';
 import { ScheduledMessages } from '../components/ScheduledMessages';
+import { ImageDrop, type PickedImage } from '../components/ImageDrop';
 import { useSelection } from '../lib/useSelection';
 import { groupDisplay, driverDisplay, driverImages, imageSrc } from '../lib/helpers';
 import type { TelegramGroup, Driver, Company, ViewMode } from '../types';
@@ -39,6 +40,7 @@ export default function GroupsPage() {
   const [messaging, setMessaging] = useState<TelegramGroup | null>(null);
   const [syncStatus, setSyncStatus] = useState('');
   const [broadcast, setBroadcast] = useState('');
+  const [broadcastImages, setBroadcastImages] = useState<PickedImage[]>([]);
   const [broadcasting, setBroadcasting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [bulkCompany, setBulkCompany] = useState('');
@@ -133,12 +135,13 @@ export default function GroupsPage() {
   }
 
   async function sendBroadcast() {
-    if (!broadcast.trim()) { toast('Enter a message'); return; }
+    if (!broadcast.trim() && broadcastImages.length === 0) { toast('Add a message or an image'); return; }
     setBroadcasting(true);
     try {
-      const d = await api.post<{ sent: number; failed: number }>('/groups/broadcast', { text: broadcast });
+      const d = await api.post<{ sent: number; failed: number }>('/groups/broadcast', { text: broadcast, photos: broadcastImages.map((i) => i.dataUrl) });
       toast(`Sent to ${d.sent} group(s) (${d.failed} failed)`);
       setBroadcast('');
+      setBroadcastImages([]);
     } catch {
       toast('Broadcast failed');
     } finally {
@@ -309,7 +312,8 @@ export default function GroupsPage() {
 
           <div className="panel side-panel">
             <div className="panel-title"><Icon name="megaphone" className="" /> Broadcast</div>
-            <p className="side-hint">Send a message to every active group.</p>
+            <p className="side-hint">Send a message or image to every active group.</p>
+            <ImageDrop images={broadcastImages} onChange={setBroadcastImages} />
             <textarea className="form-input" rows={4} value={broadcast} onChange={(e) => setBroadcast(e.target.value)} placeholder="*Important announcement*&#10;&#10;Your message here…" />
             <button className="btn btn-warning btn-block" style={{ marginTop: '0.65rem' }} onClick={sendBroadcast} disabled={broadcasting}>
               <Icon name="send" /> {broadcasting ? 'Sending…' : 'Send broadcast'}
