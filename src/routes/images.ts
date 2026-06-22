@@ -15,6 +15,7 @@ router.get('/file/:fileId', async (req: Request, res: Response) => {
       return;
     }
 
+    res.set('Cache-Control', 'private, max-age=3000');
     res.redirect(fileLink);
   } catch (error) {
     console.error('Error getting file link:', error);
@@ -44,6 +45,7 @@ router.get('/:messageId', async (req: Request, res: Response) => {
       return;
     }
 
+    res.set('Cache-Control', 'private, max-age=3000');
     res.redirect(fileLink);
   } catch (error) {
     console.error('Error fetching image:', error);

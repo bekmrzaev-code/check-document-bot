@@ -9,6 +9,8 @@ export interface Driver {
   status: DriverStatus;
   company_id: string | null;
   truck_number?: string | null;
+  blocked?: number | boolean | null;        // admin "never get request" flag
+  fully_approved?: number | boolean | null; // approved with no checklist issues
   created_at: string;
   updated_at: string;
 }

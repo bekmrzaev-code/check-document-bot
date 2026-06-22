@@ -39,13 +39,12 @@ router.get('/:id/drivers', async (req: Request, res: Response) => {
 
     const drivers = await driverService.getByCompany(req.params.id);
 
-    // Get approved images for each driver
-    const driversWithImages = await Promise.all(
-      drivers.map(async (driver) => {
-        const images = await approvedImageService.getByDriverId(driver.id);
-        return { ...driver, images };
-      })
-    );
+    // Get approved images for all drivers in ONE query (avoids N+1)
+    const imagesByDriver = await approvedImageService.getByDriverIds(drivers.map((d) => d.id));
+    const driversWithImages = drivers.map((driver) => ({
+      ...driver,
+      images: imagesByDriver[driver.id] || [],
+    }));
 
     res.json({ company, drivers: driversWithImages });
   } catch (error) {

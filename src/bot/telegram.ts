@@ -31,6 +31,9 @@ export class TelegramBot {
   private bot: Telegraf<BotContext>;
   private imageBuffer: Map<string, ImageBuffer>;
   private botUserId: number | null = null;
+  // Cache Telegram file URLs (valid ~1h) so repeated gallery loads don't hit
+  // the getFile API every time — the main speed-up for the admin image grid.
+  private fileLinkCache: Map<string, { url: string; expires: number }> = new Map();
 
   constructor(token: string) {
     this.bot = new Telegraf<BotContext>(token);
@@ -235,6 +238,16 @@ export class TelegramBot {
     }
 
     try {
+      // Gate: ignore uploads from drivers who are blocked ("never get request")
+      // or fully approved — until an admin re-permits them. Drivers approved
+      // WITH issues (not fully approved) still generate requests so they can
+      // resubmit after fixing the problem.
+      const existing = await driverService.getByTelegramId(buffer.userId);
+      if (existing && (existing.blocked || existing.fully_approved)) {
+        this.imageBuffer.delete(bufferKey);
+        return;
+      }
+
       const driver = await driverService.getOrCreate(buffer.userId, buffer.senderName);
 
       const upload = await uploadService.create(
@@ -353,13 +366,19 @@ ${getAppUrl()}/admin?upload=${upload.id}
   }
 
   async getFileLink(fileId: string): Promise<string | null> {
+    const cached = this.fileLinkCache.get(fileId);
+    if (cached && cached.expires > Date.now()) {
+      return cached.url;
+    }
     try {
       const file = await this.bot.telegram.getFile(fileId);
       if (!file || !file.file_path) {
         return null;
       }
-
-      return `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+      const url = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
+      // Telegram file paths stay valid for at least 1h; cache for 50m.
+      this.fileLinkCache.set(fileId, { url, expires: Date.now() + 50 * 60 * 1000 });
+      return url;
     } catch (error) {
       console.error('Error getting file link:', error);
       return null;

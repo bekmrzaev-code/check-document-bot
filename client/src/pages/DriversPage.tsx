@@ -59,6 +59,25 @@ export default function DriversPage() {
   const pg = paginate(filtered, page);
   const allSelected = pg.slice.length > 0 && pg.slice.every((d) => sel.isSelected(d.id));
 
+  function driverState(d: Driver): { label: string; cls: string } {
+    if (d.blocked) return { label: 'Blocked', cls: 'badge-inactive' };
+    if (d.fully_approved) return { label: 'Fully approved', cls: 'badge-approved' };
+    return { label: 'Approved · has issues', cls: 'badge-pending' };
+  }
+
+  async function block(d: Driver) {
+    if (!confirm(`Never get requests from ${driverDisplay(d)} again?`)) return;
+    setBusy(true);
+    try { await api.post(`/drivers/${d.id}/block`); toast('Blocked — no more requests'); load(); }
+    catch { toast('Failed'); setBusy(false); }
+  }
+
+  async function allow(d: Driver) {
+    setBusy(true);
+    try { await api.post(`/drivers/${d.id}/allow`); toast('Requests enabled again'); load(); }
+    catch { toast('Failed'); setBusy(false); }
+  }
+
   function openLightbox(d: Driver, index: number) {
     setLightbox({ images: driverImages(d).map(imageSrc), index });
   }
@@ -121,7 +140,7 @@ export default function DriversPage() {
                   <div className="card-top">
                     <SelectAvatar name={driverDisplay(d)} variant="green" selected={sel.isSelected(d.id)} onToggle={() => sel.toggle(d.id)} />
                     <div className="card-info"><NameBlock display={driverDisplay(d)} original={d.name} hint /></div>
-                    <span className="badge badge-approved">Approved</span>
+                    <span className={`badge ${driverState(d).cls}`}>{driverState(d).label}</span>
                   </div>
                   <div className="card-body">
                     <div className="card-meta">
@@ -137,7 +156,10 @@ export default function DriversPage() {
                       </div>
                     )}
                     <div className="btn-group">
-                      <button className="btn btn-secondary" onClick={() => setEditing(d)}><Icon name="edit" /> Edit Driver</button>
+                      <button className="btn btn-secondary" onClick={() => setEditing(d)}><Icon name="edit" /> Edit</button>
+                      {(d.blocked || d.fully_approved)
+                        ? <button className="btn btn-success" disabled={busy} onClick={() => allow(d)}><Icon name="check" /> Allow requests</button>
+                        : <button className="btn btn-danger" disabled={busy} onClick={() => block(d)}><Icon name="x" /> Never request</button>}
                     </div>
                   </div>
                 </div>
@@ -161,6 +183,7 @@ export default function DriversPage() {
                       <div className="list-sub"><Icon name="building" className="" /> {companyName(d.company_id) || 'Unassigned'}{d.truck_number ? <> · <Icon name="truck" className="" /> {d.truck_number}</> : null}</div>
                     </div>
                     <div className="list-right">
+                      <span className={`badge ${driverState(d).cls}`}>{driverState(d).label}</span>
                       <span className="list-chevron"><Icon name="chevron" className="" /></span>
                     </div>
                   </div>
@@ -183,6 +206,9 @@ export default function DriversPage() {
                       )}
                       <div className="detail-actions">
                         <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); setEditing(d); }}><Icon name="edit" /> Edit Driver</button>
+                        {(d.blocked || d.fully_approved)
+                          ? <button className="btn btn-success" disabled={busy} onClick={(e) => { e.stopPropagation(); allow(d); }}><Icon name="check" /> Allow requests</button>
+                          : <button className="btn btn-danger" disabled={busy} onClick={(e) => { e.stopPropagation(); block(d); }}><Icon name="x" /> Never request</button>}
                       </div>
                     </div>
                   )}

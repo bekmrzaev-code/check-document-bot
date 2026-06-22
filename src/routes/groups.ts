@@ -63,12 +63,8 @@ router.get('/:groupId/drivers', adminAuth, async (req: Request, res: Response) =
       return;
     }
     const drivers = await groupService.getDriversByGroup(groupId);
-    const withImages = await Promise.all(
-      drivers.map(async (d) => ({
-        ...d,
-        images: await approvedImageService.getByDriverId(d.id),
-      }))
-    );
+    const imagesByDriver = await approvedImageService.getByDriverIds(drivers.map((d) => d.id));
+    const withImages = drivers.map((d) => ({ ...d, images: imagesByDriver[d.id] || [] }));
     const out: { approved: any[]; pending: any[]; rejected: any[] } = {
       approved: [],
       pending: [],

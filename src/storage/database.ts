@@ -38,9 +38,14 @@ const PG_SCHEMA = [
     status TEXT DEFAULT 'pending',
     company_id TEXT,
     truck_number TEXT,
+    blocked INTEGER DEFAULT 0,
+    fully_approved INTEGER DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   )`,
+  // Migrations for databases created before these flags existed.
+  `ALTER TABLE drivers ADD COLUMN IF NOT EXISTS blocked INTEGER DEFAULT 0`,
+  `ALTER TABLE drivers ADD COLUMN IF NOT EXISTS fully_approved INTEGER DEFAULT 0`,
   `CREATE TABLE IF NOT EXISTS uploads (
     id TEXT PRIMARY KEY,
     driver_id TEXT NOT NULL,
@@ -95,6 +100,9 @@ const PG_SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_uploads_status ON uploads(status)`,
   `CREATE INDEX IF NOT EXISTS idx_drivers_company_id ON drivers(company_id)`,
   `CREATE INDEX IF NOT EXISTS idx_groups_company_id ON telegram_groups(company_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_uploads_group_id ON uploads(group_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_approved_images_upload_id ON approved_images(upload_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_approved_images_message_id ON approved_images(message_id)`,
 ];
 
 export class Database {

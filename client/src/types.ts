@@ -8,6 +8,8 @@ export interface Driver {
   status: Status;
   company_id: string | null;
   truck_number?: string | null;
+  blocked?: number | boolean | null;
+  fully_approved?: number | boolean | null;
   created_at: string;
   updated_at: string;
   images?: ApprovedImage[];

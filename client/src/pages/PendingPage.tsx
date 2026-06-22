@@ -3,28 +3,31 @@ import { api } from '../api/client';
 import { toast } from '../lib/toast';
 import { Avatar, Icon, NameBlock } from '../lib/ui';
 import { ViewToggle, Loading, EmptyState, SelectAvatar, SelectAll, SelectionBar } from '../components/Common';
+import { ReviewUploadModal } from '../components/ReviewUploadModal';
 import { useSelection } from '../lib/useSelection';
 import type { PendingUpload, Company, Driver, ViewMode } from '../types';
 
 export default function PendingPage() {
   const [uploads, setUploads] = useState<PendingUpload[]>([]);
-  const [companiesCount, setCompaniesCount] = useState(0);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [driversCount, setDriversCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState('');
   const [view, setView] = useState<ViewMode>('list');
+  const [reviewing, setReviewing] = useState<PendingUpload | null>(null);
   const sel = useSelection<string>();
+  const companiesCount = companies.length;
 
   async function load() {
     try {
-      const [pending, companies, drivers] = await Promise.all([
+      const [pending, comps, drivers] = await Promise.all([
         api.get<PendingUpload[]>('/uploads/pending'),
         api.get<Company[]>('/companies'),
         api.get<Driver[]>('/drivers'),
       ]);
       setUploads(pending);
-      setCompaniesCount(companies.length);
+      setCompanies(comps);
       setDriversCount(drivers.length);
       sel.clear();
     } catch {
@@ -131,7 +134,7 @@ export default function PendingPage() {
             <div className={`card ${sel.isSelected(u.id) ? 'selected' : ''}`} key={u.id}>
               <div className="card-top">
                 <SelectAvatar name={displayName(u)} selected={sel.isSelected(u.id)} onToggle={() => sel.toggle(u.id)} />
-                <div className="card-info"><NameBlock display={displayName(u)} original={u.driver_name} /></div>
+                <div className="card-info clickable" onClick={() => setReviewing(u)}><NameBlock display={displayName(u)} original={u.driver_name} /></div>
                 <span className="badge badge-pending">Pending</span>
               </div>
               <div className="card-body">
@@ -140,8 +143,9 @@ export default function PendingPage() {
                   <span className="meta-chip"><Icon name="image" className="" /> {u.image_count} photos</span>
                 </div>
                 <div className="btn-group">
-                  <button className="btn btn-success" onClick={() => approveQuick(u.id)}><Icon name="check" /> Approve</button>
-                  <button className="btn btn-danger" onClick={() => rejectQuick(u.id)}><Icon name="close" /> Reject</button>
+                  <button className="btn btn-primary" onClick={() => setReviewing(u)}><Icon name="eye" /> Review</button>
+                  <button className="btn btn-success" onClick={() => approveQuick(u.id)}><Icon name="check" /> Approve all</button>
+                  <button className="btn btn-danger btn-icon" onClick={() => rejectQuick(u.id)} title="Reject"><Icon name="close" /></button>
                 </div>
               </div>
             </div>
@@ -152,17 +156,27 @@ export default function PendingPage() {
           {filtered.map((u, i) => (
             <div className={`list-row ${sel.isSelected(u.id) ? 'selected' : ''}`} key={u.id}>
               <SelectAvatar name={displayName(u)} selected={sel.isSelected(u.id)} onToggle={() => sel.toggle(u.id)} />
-              <div className="list-main">
+              <div className="list-main clickable" onClick={() => setReviewing(u)}>
                 <NameBlock display={displayName(u)} original={u.driver_name} />
                 <div className="list-sub"><Icon name="groups" className="" /> {u.group_name} · <Icon name="image" className="" /> {u.image_count} photos</div>
               </div>
               <div className="list-right">
-                <button className="btn btn-success btn-icon" onClick={() => approveQuick(u.id)} title="Quick approve"><Icon name="check" /></button>
+                <button className="btn btn-primary btn-icon" onClick={() => setReviewing(u)} title="Review documents"><Icon name="eye" /></button>
+                <button className="btn btn-success btn-icon" onClick={() => approveQuick(u.id)} title="Approve all"><Icon name="check" /></button>
                 <button className="btn btn-danger btn-icon" onClick={() => rejectQuick(u.id)} title="Reject"><Icon name="close" /></button>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {reviewing && (
+        <ReviewUploadModal
+          upload={reviewing}
+          companies={companies}
+          onClose={() => setReviewing(null)}
+          onDone={() => { setReviewing(null); load(); }}
+        />
       )}
     </>
   );
